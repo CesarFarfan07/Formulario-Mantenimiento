@@ -5,10 +5,39 @@ let _searchHasMore = false;
 let _searchParams = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
-    document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
     await loadOptions();
     populateStaticSelects();
-    document.querySelectorAll('.entry-card').forEach(card => initEntry(card));
+    // Create extra entry cards if saved state needs them
+    const saved = loadFormState();
+    if (saved && saved.entriesCount > 1) {
+        const container = document.getElementById('entriesContainer');
+        const template = container.querySelector('.entry-card');
+        for (let i = 1; i < saved.entriesCount; i++) {
+            const clone = template.cloneNode(true);
+            container.appendChild(clone);
+        }
+    }
+    document.querySelectorAll('.entry-card').forEach((card, i) => {
+        initEntry(card);
+        if (saved && saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
+    });
+    if (saved) {
+        if (saved.date) document.getElementById('reportDate').value = saved.date;
+        if (saved.shift) document.getElementById('shift').value = saved.shift;
+        if (saved.groupName) {
+            document.getElementById('groupName').value = saved.groupName;
+            onGroupChange();
+            // Re-apply card values after onGroupChange populates collaborators
+            document.querySelectorAll('.entry-card').forEach((card, i) => {
+                if (saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
+            });
+        }
+    }
+    renumberEntries();
+    updateRemoveButtons();
+    if (!saved) {
+        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+    }
 });
 
 // Re-fetch options when returning from admin (bfcache or tab switch)
@@ -75,6 +104,148 @@ function populateStaticSelects() {
         const o = document.createElement('option'); o.value = g; o.textContent = g; groupSel.appendChild(o);
     });
 }
+
+// ─── FORM PERSISTENCE (localStorage) ──────────────────────────────────────
+
+const STORAGE_KEY = 'formulario_mantto_state';
+
+function saveFormState() {
+    const state = {
+        date: document.getElementById('reportDate').value,
+        shift: document.getElementById('shift').value,
+        groupName: document.getElementById('groupName').value,
+        entriesCount: document.querySelectorAll('.entry-card').length,
+        entries: [],
+        savedAt: Date.now(),
+    };
+    document.querySelectorAll('.entry-card').forEach(card => {
+        const entry = {
+            macroprocess: card.querySelector('.macroprocess')?.value || '',
+            workType: card.querySelector('.work-type')?.value || '',
+            actionType: card.querySelector('.action-type')?.value || '',
+            description: card.querySelector('.descripcion')?.value || '',
+            nivel: card.querySelector('.nivel')?.value || '',
+            lugar: card.querySelector('.lugar')?.value || '',
+            horaInicio: card.querySelector('.hora-inicio')?.value || '',
+            horaFin: card.querySelector('.hora-fin')?.value || '',
+            equipoCat: card.querySelector('.equipo-categoria')?.value || '',
+            equipoSub: card.querySelector('.equipo-sub')?.value || '',
+            equipoOtras: card.querySelector('.equipo-sub-otras')?.value || '',
+            horometroMotor: card.querySelector('.horometro-motor')?.value || '',
+            horometroJumbo: card.querySelector('.horometro-jumbo')?.value || '',
+            horometroVolquetes: card.querySelector('.horometro-volquetes')?.value || '',
+            kilometraje: card.querySelector('.kilometraje')?.value || '',
+            horometroElectrico: card.querySelector('.horometro-electrico')?.value || '',
+            horometroPercusion: card.querySelector('.horometro-percusion')?.value || '',
+            colabChecked: [],
+            colabOtras: card.querySelector('.entry-colab-otras-input')?.value || '',
+        };
+        card.querySelectorAll('.colab-check:checked').forEach(cb => {
+            if (cb.value !== '__otras__') entry.colabChecked.push(cb.value);
+        });
+        if (card.querySelector('.colab-check[value="__otras__"]')?.checked) {
+            entry.colabChecked.push('__otras__');
+        }
+        state.entries.push(entry);
+    });
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (_) {}
+}
+
+function loadFormState() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+
+function clearFormState() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+}
+
+function restoreCardState(card, entry) {
+    if (!entry) return;
+    const setVal = (sel, val) => {
+        const el = card.querySelector(sel);
+        if (el && val) el.value = val;
+    };
+    setVal('.macroprocess', entry.macroprocess);
+    setVal('.work-type', entry.workType);
+    setVal('.action-type', entry.actionType);
+    setVal('.descripcion', entry.description);
+    setVal('.nivel', entry.nivel);
+    setVal('.lugar', entry.lugar);
+    setVal('.hora-inicio', entry.horaInicio);
+    setVal('.hora-fin', entry.horaFin);
+    setVal('.equipo-categoria', entry.equipoCat);
+    if (entry.equipoCat) {
+        // Populate sub-equipos dropdown
+        const sub = card.querySelector('.equipo-sub');
+        const otrasInput = card.querySelector('.equipo-sub-otras');
+        if (sub) {
+            const catOptions = opt.equipos[entry.equipoCat];
+            if (catOptions) {
+                sub.innerHTML = '<option value="">Seleccionar...</option>';
+                (catOptions.subequipos || []).forEach(eq => {
+                    const o = document.createElement('option');
+                    o.value = eq.nombre;
+                    o.dataset.mide = eq.mide || 'fin';
+                    o.textContent = eq.nombre;
+                    sub.appendChild(o);
+                });
+                const defaultMide = catOptions.subequipos?.[0]?.mide || 'fin';
+                const o = document.createElement('option');
+                o.value = '__otras__';
+                o.dataset.mide = defaultMide;
+                o.textContent = 'Otras (especifique)';
+                sub.appendChild(o);
+                card.querySelector('.medidores-section').classList.remove('d-none');
+            }
+        }
+        if (sub) sub.value = entry.equipoSub || '';
+        if (otrasInput) {
+            otrasInput.value = entry.equipoOtras || '';
+            otrasInput.classList.toggle('d-none', entry.equipoSub !== '__otras__');
+        }
+        // Show meters
+        if (entry.equipoSub) {
+            const subOpt = sub?.options[sub.selectedIndex];
+            const mide = subOpt?.dataset?.mide || null;
+            if (mide) showMeters(card, mide);
+        }
+    }
+    setVal('.horometro-motor', entry.horometroMotor);
+    setVal('.horometro-jumbo', entry.horometroJumbo);
+    setVal('.horometro-volquetes', entry.horometroVolquetes);
+    setVal('.kilometraje', entry.kilometraje);
+    setVal('.horometro-electrico', entry.horometroElectrico);
+    setVal('.horometro-percusion', entry.horometroPercusion);
+
+    // Restore collaborators
+    if (entry.colabChecked && entry.colabChecked.length) {
+        card.querySelectorAll('.colab-check').forEach(cb => {
+            if (entry.colabChecked.includes(cb.value)) cb.checked = true;
+        });
+        const otrasRow = card.querySelector('.entry-colab-otras-row');
+        const otrasInput = card.querySelector('.entry-colab-otras-input');
+        if (entry.colabChecked.includes('__otras__') && otrasRow && otrasInput) {
+            otrasRow.classList.remove('d-none');
+            otrasInput.value = entry.colabOtras || '';
+        }
+    }
+}
+
+// Auto-save on field changes (debounced)
+let _saveTimer = null;
+function autoSave() {
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(saveFormState, 500);
+}
+document.addEventListener('change', autoSave);
+document.addEventListener('input', autoSave);
+
+// ─── ENTRY SETUP ───────────────────────────────────────────────────────────
 
 function initEntry(card) {
     const hi = card.querySelector('.hora-inicio');
@@ -791,6 +962,7 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         </div>`;
 
         showModal('✅ Reporte Enviado', successHtml);
+        clearFormState();
 
         document.getElementById('reportForm').reset();
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
