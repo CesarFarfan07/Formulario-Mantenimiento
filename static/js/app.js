@@ -1,0 +1,1249 @@
+let opt = null;
+let _searchCursor = null;
+let _searchCursorDate = null;
+let _searchHasMore = false;
+let _searchParams = {};
+
+document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+    await loadOptions();
+    populateStaticSelects();
+    document.querySelectorAll('.entry-card').forEach(card => initEntry(card));
+});
+
+// Re-fetch options when returning from admin (bfcache or tab switch)
+async function refreshOptions() {
+    if (!opt) return;
+    try {
+        const r = await fetch('/api/options');
+        const newOpt = await r.json();
+
+        // Save checked collaborator names per card before refresh
+        const prevCardData = [];
+        document.querySelectorAll('.entry-card').forEach(card => {
+            const checked = new Set();
+            card.querySelectorAll('.colab-check:checked').forEach(cb => checked.add(cb.value));
+            const otrasVal = card.querySelector('.entry-colab-otras-input')?.value || '';
+            prevCardData.push({ checked, otrasVal });
+        });
+
+        opt = newOpt;
+        populateStaticSelects();
+
+        const group = document.getElementById('groupName').value;
+        if (group) onGroupChange();
+
+        // Restore checked collaborators per card
+        document.querySelectorAll('.entry-card').forEach((card, idx) => {
+            const data = prevCardData[idx];
+            if (!data) return;
+            card.querySelectorAll('.colab-check').forEach(cb => {
+                if (data.checked.has(cb.value) || data.checked.has('__otras__')) cb.checked = true;
+            });
+            if (data.checked.has('__otras__') && data.otrasVal) {
+                const row = card.querySelector('.entry-colab-otras-row');
+                if (row) { row.classList.remove('d-none'); card.querySelector('.entry-colab-otras-input').value = data.otrasVal; }
+            }
+            populateEquipos(card);
+            populateMacroprocess(card);
+            populateNiveles(card);
+            populateActions(card);
+            const macro = card.querySelector('.macroprocess');
+            if (macro.value) onMacroprocessChange(macro);
+        });
+    } catch {}
+}
+
+window.addEventListener('pageshow', refreshOptions);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshOptions(); });
+
+async function loadOptions() {
+    const r = await fetch('/api/options');
+    opt = await r.json();
+}
+
+function populateStaticSelects() {
+    const shiftSel = document.getElementById('shift');
+    shiftSel.innerHTML = '<option value="">Seleccionar...</option>';
+    opt.turnos.forEach(t => {
+        const o = document.createElement('option'); o.value = t; o.textContent = t; shiftSel.appendChild(o);
+    });
+
+    const groupSel = document.getElementById('groupName');
+    groupSel.innerHTML = '<option value="">Seleccionar...</option>';
+    opt.grupos.forEach(g => {
+        const o = document.createElement('option'); o.value = g; o.textContent = g; groupSel.appendChild(o);
+    });
+}
+
+function initEntry(card) {
+    const hi = card.querySelector('.hora-inicio');
+    const hf = card.querySelector('.hora-fin');
+    const dur = card.querySelector('.duracion');
+    calcularDuracion(hi, hf, dur);
+    card.querySelector('input[type="file"]').addEventListener('change', handleFilePreview);
+    populateEquipos(card);
+    populateNiveles(card);
+}
+
+function populateEquipos(card) {
+    const sel = card.querySelector('.equipo-categoria');
+    sel.innerHTML = '<option value="">Seleccionar...</option>';
+    Object.keys(opt.equipos).sort().forEach(nombre => {
+        const o = document.createElement('option'); o.value = nombre; o.textContent = nombre; sel.appendChild(o);
+    });
+}
+
+function populateNiveles(card) {
+    const sel = card.querySelector('.nivel');
+    sel.innerHTML = '<option value="">Seleccionar...</option>';
+    opt.niveles.forEach(n => {
+        const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+    });
+}
+
+function onGroupChange() {
+    const group = document.getElementById('groupName').value;
+
+    if (!group) {
+        document.querySelectorAll('.entry-card').forEach(card => {
+            card.querySelector('.entry-colab-section')?.classList.add('d-none');
+        });
+        return;
+    }
+
+    const key = group.includes('Trackless') ? 'Trackless' : group.includes('Convencional') ? 'Convencional' : 'Electrico';
+    const maxSelect = opt.colab_max_select || 4;
+
+    document.querySelectorAll('.entry-card').forEach(card => {
+        const section = card.querySelector('.entry-colab-section');
+        if (!section) return;
+        section.classList.remove('d-none');
+        section.querySelector('.colab-max-label').textContent = maxSelect;
+
+        const container = section.querySelector('.entry-colab-checkboxes');
+        container.innerHTML = '';
+        const cols = opt.colaboradores[key] || [];
+        const uniqueId = 'card_' + Math.random().toString(36).substr(2, 6);
+
+        cols.forEach((name, i) => {
+            const div = document.createElement('div');
+            div.className = 'col-md-4 col-lg-3';
+            div.innerHTML = `<div class="form-check">
+                <input class="form-check-input colab-check" type="checkbox" value="${name}" id="${uniqueId}_colab_${i}">
+                <label class="form-check-label" for="${uniqueId}_colab_${i}">${name}</label>
+            </div>`;
+            container.appendChild(div);
+        });
+
+        const otrasRow = section.querySelector('.entry-colab-otras-row');
+        otrasRow.classList.add('d-none');
+        section.querySelector('.entry-colab-otras-input').value = '';
+
+        const div = document.createElement('div');
+        div.className = 'col-md-4 col-lg-3';
+        div.innerHTML = `<div class="form-check">
+            <input class="form-check-input colab-check" type="checkbox" value="__otras__" id="${uniqueId}_colab_otras">
+            <label class="form-check-label" for="${uniqueId}_colab_otras"><strong>Otros</strong></label>
+        </div>`;
+        container.appendChild(div);
+
+        // Add change listeners for this card's checkboxes
+        container.querySelectorAll('.colab-check').forEach(cb => {
+            cb.addEventListener('change', () => onCardColabChange(card));
+        });
+
+        populateMacroprocess(card);
+        populateActions(card);
+    });
+}
+
+function onCardColabChange(card) {
+    const section = card.querySelector('.entry-colab-section');
+    if (!section) return;
+    const max = opt.colab_max_select || 4;
+    const checks = section.querySelectorAll('.colab-check:checked');
+    const otrasCheck = section.querySelector('.colab-check[value="__otras__"]');
+
+    if (checks.length > max) {
+        checks[checks.length - 1].checked = false;
+        alert(`Solo puede seleccionar hasta ${max} colaboradores.`);
+        return;
+    }
+
+    const otrasRow = section.querySelector('.entry-colab-otras-row');
+    const otrasInput = section.querySelector('.entry-colab-otras-input');
+    if (otrasCheck && otrasCheck.checked) {
+        otrasRow.classList.remove('d-none');
+    } else {
+        otrasRow.classList.add('d-none');
+        otrasInput.value = '';
+    }
+}
+
+function populateMacroprocess(card) {
+    const group = document.getElementById('groupName').value;
+    const sel = card.querySelector('.macroprocess');
+    sel.innerHTML = '<option value="">Seleccionar...</option>';
+    if (!group) return;
+    const key = group.includes('Trackless') ? 'Trackless' : group.includes('Convencional') ? 'Convencional' : 'Electrico';
+    const opts = opt.macroprocesos[key] || [];
+    opts.forEach(p => {
+        const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o);
+    });
+}
+
+function populateActions(card) {
+    const group = document.getElementById('groupName').value;
+    const action = card.querySelector('.action-type');
+    action.innerHTML = '<option value="">Seleccionar...</option>';
+    if (!group) return;
+    let gKey;
+    if (group.includes('Trackless')) gKey = 'Trackless';
+    else if (group.includes('Convencional')) gKey = 'Convencional';
+    else gKey = 'Electrico';
+
+    let opts = opt.acciones[gKey] || [];
+    // Fallback: include old combined key for backward compat
+    const oldKey = 'Convencional_Electrico';
+    if (opt.acciones[oldKey] && (gKey === 'Convencional' || gKey === 'Electrico')) {
+        opts = [...new Set([...opts, ...opt.acciones[oldKey]])];
+    }
+    opts.forEach(a => {
+        const o = document.createElement('option'); o.value = a; o.textContent = a; action.appendChild(o);
+    });
+}
+
+function getTipoKey(gKey, macro) {
+    let moda = 'Mecánico';
+    const n = macro.toLowerCase();
+    if (n.includes('eléctrico') || n.includes('electrico')) moda = 'Eléctrico';
+    else if (n.includes('fabric') || n.includes('soldadura')) moda = 'Fabricacion_Soldadura';
+    else if (n.includes('instal')) moda = 'Instalaciones';
+    else if (n.includes('logistic')) moda = 'Logistica';
+    else if (n.includes('servicio')) moda = 'Servicios';
+    else if (n.includes('trabajo')) moda = 'Trabajos';
+
+    const key = `${gKey}_${moda}`;
+    // Try group-specific key first; fall back to shared key for backward compat
+    if (opt.tipos_trabajo[key] && opt.tipos_trabajo[key].length > 0) return key;
+    if (moda === 'Fabricacion_Soldadura' && opt.tipos_trabajo['Fabricacion_Soldadura'] && opt.tipos_trabajo['Fabricacion_Soldadura'].length) return 'Fabricacion_Soldadura';
+    if (moda === 'Instalaciones' && opt.tipos_trabajo['Instalaciones'] && opt.tipos_trabajo['Instalaciones'].length) return 'Instalaciones';
+    return key;
+}
+
+function onMacroprocessChange(sel) {
+    const card = sel.closest('.entry-card');
+    const group = document.getElementById('groupName').value;
+    const macro = sel.value;
+    const wt = card.querySelector('.work-type');
+    wt.innerHTML = '<option value="">Seleccionar...</option>';
+
+    if (!group || !macro) return;
+
+    const gKey = group.includes('Trackless') ? 'Trackless' : group.includes('Convencional') ? 'Convencional' : 'Electrico';
+    const tipoKey = getTipoKey(gKey, macro);
+
+    const opts = opt.tipos_trabajo[tipoKey] || [];
+    opts.forEach(p => {
+        const val = typeof p === 'string' ? p : p.name;
+        const o = document.createElement('option'); o.value = val; o.textContent = val;
+        o.dataset.defaultAction = typeof p === 'string' ? '' : (p.default_action || '');
+        wt.appendChild(o);
+    });
+}
+
+// Auto-select action when work type changes
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('work-type')) {
+        const sel = e.target;
+        const card = sel.closest('.entry-card');
+        if (card) {
+            const actionSel = card.querySelector('.action-type');
+            const defAction = sel.options[sel.selectedIndex]?.dataset?.defaultAction;
+            if (defAction && actionSel) {
+                Array.from(actionSel.options).forEach(function(opt) {
+                    if (opt.value === defAction) opt.selected = true;
+                });
+            }
+        }
+    }
+});
+
+function onEquipoCategoriaChange(sel) {
+    const card = sel.closest('.entry-card');
+    const sub = card.querySelector('.equipo-sub');
+    const otrasInput = card.querySelector('.equipo-sub-otras');
+    sub.innerHTML = '<option value="">Seleccionar...</option>';
+    otrasInput.classList.add('d-none');
+    otrasInput.value = '';
+
+    const cat = sel.value;
+    if (!cat || !opt.equipos[cat]) {
+        card.querySelector('.medidores-section').classList.add('d-none');
+        return;
+    }
+
+    (opt.equipos[cat].subequipos || []).forEach(eq => {
+        const o = document.createElement('option');
+        o.value = eq.nombre;
+        o.dataset.mide = eq.mide || 'fin';
+        o.textContent = eq.nombre;
+        sub.appendChild(o);
+    });
+
+    const defaultMide = getDefaultMide(cat);
+    const o = document.createElement('option');
+    o.value = '__otras__';
+    o.dataset.mide = defaultMide;
+    o.textContent = 'Otras (especifique)';
+    sub.appendChild(o);
+
+    card.querySelector('.medidores-section').classList.remove('d-none');
+    showMeters(card, null);
+}
+
+function getDefaultMide(cat) {
+    const first = opt.equipos[cat]?.subequipos?.[0];
+    return first?.mide || 'fin';
+}
+
+function onSubEquipoChange(sel) {
+    const card = sel.closest('.entry-card');
+    const selected = sel.options[sel.selectedIndex];
+    const mide = selected?.dataset?.mide || 'fin';
+
+    const otrasInput = card.querySelector('.equipo-sub-otras');
+    if (selected?.value === '__otras__') {
+        otrasInput.classList.remove('d-none');
+    } else {
+        otrasInput.classList.add('d-none');
+        otrasInput.value = '';
+    }
+
+    showMeters(card, mide);
+}
+
+function showMeters(card, mide) {
+    card.querySelectorAll('.medidor-fin, .medidor-horometro-motor, .medidor-horometro-jumbo, .medidor-horometro-volquetes, .medidor-kilometraje, .medidor-horometro-electrico, .medidor-horometro-percusion').forEach(el => el.classList.add('d-none'));
+
+    if (!mide) {
+        card.querySelector('.medidores-section').classList.add('d-none');
+        return;
+    }
+
+    card.querySelector('.medidores-section').classList.remove('d-none');
+
+    const meters = mide.split(',');
+
+    if (meters.includes('fin')) {
+        card.querySelector('.medidor-fin').classList.remove('d-none');
+    }
+    if (meters.includes('horometro_motor')) {
+        const el = card.querySelector('.medidor-horometro-motor');
+        el.classList.remove('d-none');
+        validarMedidor(el.querySelector('input'), 'Horómetro de Motor');
+    }
+    if (meters.includes('horometro_jumbo')) {
+        card.querySelector('.medidor-horometro-jumbo').classList.remove('d-none');
+        validarMedidor(card.querySelector('.medidor-horometro-jumbo input'), 'Horómetro Jumbo');
+        card.querySelector('.medidor-horometro-electrico').classList.remove('d-none');
+        validarMedidor(card.querySelector('.medidor-horometro-electrico input'), 'Horómetro Eléctrico');
+        card.querySelector('.medidor-horometro-percusion').classList.remove('d-none');
+        validarMedidor(card.querySelector('.medidor-horometro-percusion input'), 'Horómetro de Percusión');
+    }
+    if (meters.includes('horometro_volquetes')) {
+        const el = card.querySelector('.medidor-horometro-volquetes');
+        el.classList.remove('d-none');
+        validarMedidor(el.querySelector('input'), 'Horómetro de Motor');
+    }
+    if (meters.includes('kilometraje')) {
+        const el = card.querySelector('.medidor-kilometraje');
+        el.classList.remove('d-none');
+        validarMedidor(el.querySelector('input'), 'Kilometraje');
+    }
+}
+
+function validarMedidor(input, label) {
+    if (!input) return;
+    const card = input.closest('.entry-card');
+    const equipoSub = card?.querySelector('.equipo-sub')?.value;
+
+    // Show last reading reference if available
+    if (equipoSub) {
+        fetch(`/api/equipment/${encodeURIComponent(equipoSub)}/last-reading`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.found) {
+                    const cls = [...input.classList].find(c => c.startsWith('horometro-') || c === 'kilometraje');
+                    const clsMap = {
+                        'horometro-motor': 'horometer_motor',
+                        'horometro-jumbo': 'horometer_motor_jumbo',
+                        'horometro-volquetes': 'horometer_motor_volquetes',
+                        'horometro-electrico': 'horometer_electric',
+                        'horometro-percusion': 'horometer_percussion',
+                        'kilometraje': 'kilometer',
+                    };
+                    const key = clsMap[cls];
+                    if (key && data.readings[key] !== null && data.readings[key] !== undefined) {
+                        // Add small reference text
+                        let ref = input.parentElement.querySelector('.last-reading-ref');
+                        if (!ref) {
+                            ref = document.createElement('small');
+                            ref.className = 'last-reading-ref text-muted d-block';
+                            ref.style.cssText = 'font-size:0.65rem;line-height:1;margin-top:2px;';
+                            input.parentElement.appendChild(ref);
+                        }
+                        ref.textContent = `Anterior: ${data.readings[key]}`;
+                    }
+                }
+            })
+            .catch(() => {});
+    }
+
+    input.addEventListener('blur', async function() {
+        const val = parseFloat(this.value);
+        if (val === 0) {
+            alert(`No se puede reportar ${label} con valor 0.`);
+            this.value = '';
+            return;
+        }
+        const card = this.closest('.entry-card');
+        const equipoSub = card?.querySelector('.equipo-sub')?.value;
+        if (!equipoSub) return;
+        try {
+            const r = await fetch(`/api/equipment/${encodeURIComponent(equipoSub)}/last-reading`);
+            const data = await r.json();
+            if (data.found && data.readings) {
+                const cls = [...this.classList].find(c => c.startsWith('horometro-') || c === 'kilometraje');
+                const clsMap = {
+                    'horometro-motor': 'horometer_motor',
+                    'horometro-jumbo': 'horometer_motor_jumbo',
+                    'horometro-volquetes': 'horometer_motor_volquetes',
+                    'horometro-electrico': 'horometer_electric',
+                    'horometro-percusion': 'horometer_percussion',
+                    'kilometraje': 'kilometer',
+                };
+                const key = clsMap[cls];
+                if (key && data.readings[key] !== null && data.readings[key] !== undefined) {
+                    const lastVal = data.readings[key];
+                    if (val <= lastVal) {
+                        alert(`El valor (${val}) debe ser mayor que la última lectura registrada (${lastVal}) para este equipo.`);
+                        this.value = '';
+                    }
+                }
+            }
+        } catch (_) {}
+    });
+}
+
+function calcularDuracion(startInp, endInp, durInp) {
+    const calc = () => {
+        if (startInp.value && endInp.value) {
+            const [h1, m1] = startInp.value.split(':').map(Number);
+            const [h2, m2] = endInp.value.split(':').map(Number);
+            const t1 = h1 * 60 + m1;
+            const t2 = h2 * 60 + m2;
+            const diff = t2 >= t1 ? t2 - t1 : (t2 + 1440) - t1;
+            const h = Math.floor(diff / 60);
+            const m = diff % 60;
+            durInp.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+    };
+    startInp.addEventListener('change', calc);
+    endInp.addEventListener('change', calc);
+}
+function confirmYesNo(msg) {
+    return new Promise(resolve => {
+        const modal = document.getElementById('confirmModal');
+        const body = modal.querySelector('.modal-body');
+        const yesBtn = modal.querySelector('#confirmYes');
+        const noBtn = modal.querySelector('#confirmNo');
+        body.textContent = msg;
+        modal._resolve = resolve;
+        const bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
+        bsModal.show();
+    });
+}
+document.getElementById('confirmYes')?.addEventListener('click', () => {
+    const modal = document.getElementById('confirmModal');
+    modal._resolve?.(true);
+    bootstrap.Modal.getInstance(modal)?.hide();
+});
+document.getElementById('confirmNo')?.addEventListener('click', () => {
+    const modal = document.getElementById('confirmModal');
+    modal._resolve?.(false);
+    bootstrap.Modal.getInstance(modal)?.hide();
+});
+
+async function addEntry() {
+    const container = document.getElementById('entriesContainer');
+    const cards = container.querySelectorAll('.entry-card');
+    const clone = cards[0].cloneNode(true);
+
+    // Collect previous entry values BEFORE cloning
+    const previousEntry = cards[cards.length - 1];
+    let prevNivel = null, prevLugar = null, prevColabs = null;
+
+    if (previousEntry) {
+        prevNivel = previousEntry.querySelector('.nivel')?.value;
+        prevLugar = previousEntry.querySelector('.lugar')?.value;
+        prevColabs = getCardColaboradores(previousEntry);
+    }
+
+    // Reset clone fields
+    clone.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
+        if (el.tagName === 'SELECT') el.selectedIndex = 0;
+        else if (el.type === 'checkbox') el.checked = false;
+        else el.value = '';
+    });
+
+    // Reset per-entry collaborator section in clone
+    const cloneColabSection = clone.querySelector('.entry-colab-section');
+    if (cloneColabSection) {
+        cloneColabSection.classList.add('d-none');
+        cloneColabSection.querySelector('.entry-colab-checkboxes').innerHTML = '';
+        cloneColabSection.querySelector('.entry-colab-otras-row').classList.add('d-none');
+        cloneColabSection.querySelector('.entry-colab-otras-input').value = '';
+        const doneBtn = cloneColabSection.querySelector('.entry-colab-done');
+        doneBtn.classList.add('d-none');
+        doneBtn.style.boxShadow = '';
+        doneBtn.onclick = null;
+    }
+
+    const prev = clone.querySelector('.image-preview');
+    if (prev) prev.innerHTML = '';
+    const fileInput = clone.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
+
+    container.appendChild(clone);
+    renumberEntries();
+    updateRemoveButtons();
+    clone.querySelector('.remove-entry').style.display = 'inline-block';
+
+    initEntry(clone);
+    const group = document.getElementById('groupName').value;
+    if (group) {
+        populateMacroprocess(clone);
+        populateActions(clone);
+        // Repopulate collaborators in this new card
+        const key = group.includes('Trackless') ? 'Trackless' : group.includes('Convencional') ? 'Convencional' : 'Electrico';
+        const maxSelect = opt.colab_max_select || 4;
+        const cs = clone.querySelector('.entry-colab-section');
+        if (cs) {
+            cs.classList.remove('d-none');
+            cs.querySelector('.colab-max-label').textContent = maxSelect;
+            const container2 = cs.querySelector('.entry-colab-checkboxes');
+            const uniqueId = 'card_' + Math.random().toString(36).substr(2, 6);
+            (opt.colaboradores[key] || []).forEach((name, i) => {
+                const d = document.createElement('div');
+                d.className = 'col-md-4 col-lg-3';
+                d.innerHTML = `<div class="form-check">
+                    <input class="form-check-input colab-check" type="checkbox" value="${name}" id="${uniqueId}_colab_${i}">
+                    <label class="form-check-label" for="${uniqueId}_colab_${i}">${name}</label>
+                </div>`;
+                container2.appendChild(d);
+            });
+            const div = document.createElement('div');
+            div.className = 'col-md-4 col-lg-3';
+            div.innerHTML = `<div class="form-check">
+                <input class="form-check-input colab-check" type="checkbox" value="__otras__" id="${uniqueId}_colab_otras">
+            <label class="form-check-label" for="${uniqueId}_colab_otras"><strong>Otros</strong></label>
+            </div>`;
+            container2.appendChild(div);
+            container2.querySelectorAll('.colab-check').forEach(cb => {
+                cb.addEventListener('change', () => onCardColabChange(clone));
+            });
+        }
+    }
+
+    // Copy data from previous entry with sequential questions
+    if (previousEntry && (prevNivel || prevLugar)) {
+        let copyTrabajadores = false;
+        let copyNivel = false;
+        let copyLugar = false;
+
+        // Step 1: Ask about workers (only if previous entry had collaborators)
+        if (prevColabs) {
+            copyTrabajadores = await confirmYesNo('¿Son los mismos trabajadores que la entrada anterior?');
+        }
+
+        // If not same workers → show per-entry collaborator section in the cloned card
+        if (!copyTrabajadores) {
+            const cs = clone.querySelector('.entry-colab-section');
+            if (cs) {
+                cs.classList.remove('d-none');
+                cs.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                cs.style.transition = 'box-shadow 0.3s';
+                cs.style.boxShadow = '0 0 0 3px #ffc107';
+                const doneBtn = cs.querySelector('.entry-colab-done');
+                doneBtn.classList.remove('d-none');
+                await new Promise(resolve => {
+                    doneBtn.onclick = () => {
+                        doneBtn.classList.add('d-none');
+                        cs.style.boxShadow = '';
+                        resolve();
+                    };
+                });
+            }
+        }
+
+        // Step 2: Ask about nivel
+        if (prevNivel) {
+            copyNivel = await confirmYesNo('¿Es el mismo nivel de trabajo?');
+        }
+
+        // Step 3: Ask about lugar (only if yes to nivel)
+        if (copyNivel && prevLugar) {
+            copyLugar = await confirmYesNo('¿Es la misma labor o lugar de trabajo?');
+        }
+
+        // Apply copies
+        if (copyTrabajadores && previousEntry) {
+            const srcChecks = previousEntry.querySelectorAll('.colab-check');
+            const dstChecks = clone.querySelectorAll('.colab-check');
+            srcChecks.forEach(src => {
+                if (src.checked) {
+                    dstChecks.forEach(dst => { if (dst.value === src.value) dst.checked = true; });
+                }
+            });
+            const srcOtras = previousEntry.querySelector('.entry-colab-otras-input');
+            const dstOtrasInput = clone.querySelector('.entry-colab-otras-input');
+            const dstOtrasRow = clone.querySelector('.entry-colab-otras-row');
+            if (srcOtras?.value) {
+                if (dstOtrasInput) dstOtrasInput.value = srcOtras.value;
+                if (dstOtrasRow) dstOtrasRow.classList.remove('d-none');
+                dstChecks.forEach(dst => { if (dst.value === '__otras__') dst.checked = true; });
+            }
+        }
+
+        if (copyNivel && prevNivel) {
+            const dstNivel = clone.querySelector('.nivel');
+            if (dstNivel) {
+                Array.from(dstNivel.options).forEach(opt => {
+                    if (opt.value === prevNivel) opt.selected = true;
+                });
+            }
+        }
+
+        if (copyLugar && prevLugar) {
+            const dstLugar = clone.querySelector('.lugar');
+            if (dstLugar) dstLugar.value = prevLugar;
+        }
+    }
+
+    clone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function removeEntry(btn) {
+    const container = document.getElementById('entriesContainer');
+    if (container.querySelectorAll('.entry-card').length <= 1) return;
+    btn.closest('.entry-card').remove();
+    renumberEntries();
+    updateRemoveButtons();
+}
+
+function renumberEntries() {
+    document.querySelectorAll('#entriesContainer .entry-card').forEach((card, i) => {
+        card.querySelector('.entry-num').textContent = `#${i + 1}`;
+    });
+}
+
+function updateRemoveButtons() {
+    const n = document.querySelectorAll('#entriesContainer .entry-card').length;
+    document.querySelectorAll('#entriesContainer .remove-entry').forEach(btn => {
+        btn.style.display = n > 1 ? 'inline-block' : 'none';
+    });
+}
+
+function handleFilePreview(e) {
+    const input = e.target;
+    const preview = input.closest('.entry-card').querySelector('.image-preview');
+    preview.innerHTML = '';
+    Array.from(input.files).forEach((file, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'image-wrapper';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        img.style.cssText = 'width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #495057;';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'remove-image';
+        btn.innerHTML = '×';
+        btn.onclick = () => {
+            wrapper.remove();
+            const dt = new DataTransfer();
+            Array.from(input.files).forEach((f, i) => { if (i !== idx) dt.items.add(f); });
+            input.files = dt.files;
+        };
+        wrapper.appendChild(img);
+        wrapper.appendChild(btn);
+        preview.appendChild(wrapper);
+    });
+}
+
+function getCardColaboradores(card) {
+    if (!card) return null;
+    const section = card.querySelector('.entry-colab-section');
+    if (!section) return null;
+    const checks = section.querySelectorAll('.colab-check:checked');
+    const names = [];
+    checks.forEach(c => {
+        if (c.value === '__otras__') {
+            const otras = section.querySelector('.entry-colab-otras-input')?.value?.trim();
+            if (otras) names.push(otras);
+        } else {
+            names.push(c.value);
+        }
+    });
+    return names.length > 0 ? names.join(', ') : null;
+}
+
+// ─── SUBMIT ─────────────────────────────────────────────────────────────────
+
+document.getElementById('reportForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enviando...';
+
+    try {
+        const group = document.getElementById('groupName').value;
+        const gKey = group.includes('Trackless') ? 'Trackless' : group.includes('Convencional') ? 'Convencional' : 'Electrico';
+
+        const entries = [];
+        document.querySelectorAll('.entry-card').forEach(card => {
+            const getVal = (sel) => { const v = card.querySelector(sel)?.value?.trim(); return v || null; };
+
+            const subSel = card.querySelector('.equipo-sub');
+            const subOpt = subSel?.options[subSel.selectedIndex];
+            const isOtras = subOpt?.value === '__otras__';
+            const otrasVal = card.querySelector('.equipo-sub-otras')?.value?.trim();
+            const equipoSub = subOpt?.value || null;
+            const equipoSubText = isOtras ? (otrasVal || 'Otras') : equipoSub;
+
+            const equipoCategoria = getVal('.equipo-categoria');
+
+            const mide = subOpt?.dataset?.mide || null;
+            const readMeter = (cls) => {
+                const el = card.querySelector(cls);
+                if (!el) return null;
+                const parentMeterDiv = el.closest('[class*="medidor-"]');
+                if (parentMeterDiv && parentMeterDiv.classList.contains('d-none')) return null;
+                const v = parseFloat(el.value);
+                return isNaN(v) ? null : v;
+            };
+
+            const entry = {
+                macroprocess: getVal('.macroprocess'),
+                work_type: getVal('.work-type'),
+                action: getVal('.action-type'),
+                description: getVal('.descripcion'),
+                level: getVal('.nivel'),
+                location: getVal('.lugar'),
+                start_time_int: getVal('.hora-inicio'),
+                end_time_int: getVal('.hora-fin'),
+                duration: getVal('.duracion'),
+                equipment: equipoSubText || equipoCategoria,
+                horometer_motor: readMeter('.horometro-motor'),
+                horometer_motor_jumbo: readMeter('.horometro-jumbo'),
+                horometer_motor_volquetes: readMeter('.horometro-volquetes'),
+                horometer_electric: readMeter('.horometro-electrico'),
+                horometer_percussion: readMeter('.horometro-percusion'),
+                kilometer: readMeter('.kilometraje'),
+                collaborators: getCardColaboradores(card),
+            };
+
+            entry._files = card.querySelector('input[type="file"]') ? Array.from(card.querySelector('input[type="file"]').files) : [];
+            entry._categoria = equipoCategoria;
+            entries.push(entry);
+        });
+
+        const payload = {
+            worker_name: 'Trabajador',
+            worker_email: 'trabajador@mina.com',
+            date: document.getElementById('reportDate').value,
+            shift: document.getElementById('shift').value,
+            group_name: group,
+            start_time: null,
+            end_time: null,
+            collaborators_trackless: null,
+            collaborators_convencional: null,
+            collaborators_electrico: null,
+            entries: entries.map(e => { const { _files, ...rest } = e; return rest; }),
+        };
+
+        const res = await fetch('/api/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || 'Error del servidor');
+        }
+
+        const report = await res.json();
+
+        const entryImages = {};
+        for (let i = 0; i < entries.length; i++) {
+            entryImages[i] = [];
+            for (const file of (entries[i]._files || [])) {
+                const fd = new FormData();
+                fd.append('file', file);
+                try {
+                    const upRes = await fetch(`/api/reports/${report.entries[i].id}/images`, { method: 'POST', body: fd });
+                    const upData = await upRes.json();
+                    if (upData.filename) entryImages[i].push(upData.filename);
+                } catch (_) {}
+            }
+        }
+
+        let successHtml = `<div class="alert alert-success">✅ Reporte <strong>#${report.id}</strong> enviado correctamente.</div>`;
+
+        report.entries.forEach((e, i) => {
+            const meterLines = [];
+            if (e.horometer_motor) meterLines.push(`🔄 Horómetro Motor: <strong>${e.horometer_motor}</strong>`);
+            if (e.horometer_motor_jumbo) meterLines.push(`🔄 Horómetro Jumbo: <strong>${e.horometer_motor_jumbo}</strong>`);
+            if (e.horometer_motor_volquetes) meterLines.push(`🔄 Horómetro Motor: <strong>${e.horometer_motor_volquetes}</strong>`);
+            if (e.horometer_electric) meterLines.push(`⚡ Horómetro Eléctrico: <strong>${e.horometer_electric}</strong>`);
+            if (e.horometer_percussion) meterLines.push(`🔨 Horómetro Percusión: <strong>${e.horometer_percussion}</strong>`);
+            if (e.kilometer) meterLines.push(`📏 Kilometraje: <strong>${e.kilometer}</strong>`);
+
+            const entryColabs = entries[i].collaborators || e.collaborators || '—';
+            successHtml += `
+<div class="mb-3 p-3 border border-warning rounded" style="background:rgba(245,158,11,0.05)">
+  <h6 class="text-warning mb-2">🔧 Trabajo #${i + 1}</h6>
+  <table style="width:100%;font-size:0.9rem;">
+    <tr><td style="width:140px;color:#94a3b8;vertical-align:top;">👥 Grupo</td><td><strong>${payload.group_name}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">🧑‍🔧 Colaboradores</td><td><strong>${entryColabs}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">📋 Detalle</td><td><strong>${e.action || '—'}</strong>${e.description ? '<br>' + e.description : ''}</td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">⚙️ Equipo</td><td><strong>${e.equipment || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">🏷️ Familia</td><td><strong>${entries[i]._categoria || '—'}</strong></td></tr>
+    ${meterLines.length ? `<tr><td style="color:#94a3b8;vertical-align:top;">📊 Medidores</td><td>${meterLines.join('<br>')}</td></tr>` : ''}
+    <tr><td style="color:#94a3b8;vertical-align:top;">⏱️ Tiempo</td><td><strong>${e.start_time_int || '?'} → ${e.end_time_int || '?'}</strong> (🕒 ${e.duration || '—'})</td></tr>
+  </table>
+</div>`;
+        });
+
+        // Build WhatsApp text
+        const waText = buildWhatsAppText(report, entries, payload, entryImages);
+        const waGroup = getWhatsAppGroup(payload.group_name);
+        const waUrl = getWhatsAppUrl(waText);
+        successHtml += `<div class="d-grid gap-2 mt-3">
+            <a href="${waUrl}" target="_blank" class="btn btn-success">
+                <i class="bi bi-whatsapp"></i> Enviar a ${waGroup}
+            </a>
+        </div>`;
+
+        showModal('✅ Reporte Enviado', successHtml);
+
+        document.getElementById('reportForm').reset();
+        document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('.entry-card').forEach((c, i) => { if (i > 0) c.remove(); });
+        document.querySelectorAll('.image-preview').forEach(el => el.innerHTML = '');
+        // Reset per-entry collaborators in remaining card
+        document.querySelectorAll('.entry-colab-section').forEach(sec => {
+            sec.classList.add('d-none');
+            sec.querySelector('.entry-colab-checkboxes').innerHTML = '';
+            sec.querySelector('.entry-colab-otras-row').classList.add('d-none');
+            sec.querySelector('.entry-colab-otras-input').value = '';
+        });
+        renumberEntries();
+        updateRemoveButtons();
+
+    } catch (err) {
+        showModal('Error', `<div class="alert alert-danger">Error al enviar: ${err.message}</div>`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send"></i> Enviar Reporte';
+    }
+});
+
+// ─── SEARCH ──────────────────────────────────────────────────────────────────
+
+document.getElementById('searchCollapse')?.addEventListener('show.bs.collapse', () => {
+    if (!document.querySelector('#searchResults tr')) {
+        loadRecentReports(20);
+    }
+});
+
+async function loadRecentReports(limit = 20) {
+    document.getElementById('searchWorker').value = '';
+    document.getElementById('searchDateFrom').value = '';
+    document.getElementById('searchDateTo').value = '';
+    _searchCursor = null;
+    _searchCursorDate = null;
+    _searchHasMore = false;
+    _searchParams = {};
+    await fetchReports({ limit }, true);
+}
+
+async function searchReports() {
+    _searchCursor = null;
+    _searchCursorDate = null;
+    _searchHasMore = false;
+    const w = document.getElementById('searchWorker').value;
+    const f = document.getElementById('searchDateFrom').value;
+    const t = document.getElementById('searchDateTo').value;
+    _searchParams = {};
+    if (w) _searchParams.worker_name = w;
+    if (f) _searchParams.date_from = f;
+    if (t) _searchParams.date_to = t;
+    await fetchReports({ ..._searchParams, limit: 50 }, true);
+}
+
+async function fetchReports(params, replace = false) {
+    const container = document.getElementById('searchResults');
+    if (replace) container.innerHTML = '<p class="text-muted small">Cargando...</p>';
+    try {
+        if (_searchCursor && _searchCursorDate) {
+            params.cursor = _searchCursor;
+            params.cursor_date = _searchCursorDate;
+        }
+        const qs = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, v); });
+        const r = await fetch(`/api/reports?${qs}`);
+        const data = await r.json();
+        const reports = data.data || [];
+        _searchHasMore = data.has_more || false;
+        if (data.next_cursor) {
+            _searchCursor = data.next_cursor[0];
+            _searchCursorDate = data.next_cursor[1];
+        } else {
+            _searchCursor = null;
+            _searchCursorDate = null;
+        }
+        if (replace) {
+            renderReportsTable(reports, container);
+        } else {
+            appendReportsTable(reports, container);
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+}
+
+function renderReportsTable(reports, container) {
+    if (!reports.length) {
+        container.innerHTML = '<div class="alert alert-info">No se encontraron reportes.</div>';
+        _searchHasMore = false;
+        return;
+    }
+
+    let html = `<div class="table-responsive"><table class="table table-sm table-hover">
+        <thead><tr class="table-dark">
+            <th>#</th><th>📅 Fecha</th><th>🌓 Turno</th><th>👥 Grupo</th>
+            <th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
+        </tr></thead><tbody>`;
+
+    for (const rp of reports) {
+        const colabs = [];
+        if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
+        if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
+        if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
+        const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
+
+        html += `<tr>
+            <td>${rp.id}</td>
+            <td>${formatDate(rp.date)}</td>
+            <td>${rp.shift}</td>
+            <td>${rp.group_name}</td>
+            <td title="${colabs.join(', ')}">${colabText}</td>
+            <td>${(rp.entries || []).length}</td>
+            <td><button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button></td>
+        </tr>`;
+    }
+    html += '</tbody></table></div>';
+
+    if (_searchHasMore) {
+        html += `<div class="text-center mt-2"><button class="btn btn-outline-light btn-sm" onclick="loadMoreReports()"><i class="bi bi-plus-circle"></i> Ver más</button></div>`;
+    }
+    html += `<p class="text-muted small mt-1">${_searchHasMore ? 'Mostrando primeros ' + reports.length : reports.length} reporte(s)</p>`;
+    container.innerHTML = html;
+}
+
+function appendReportsTable(newReports, container) {
+    const tbody = container.querySelector('table tbody');
+    if (!tbody) { renderReportsTable(newReports, container); return; }
+    for (const rp of newReports) {
+        const colabs = [];
+        if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
+        if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
+        if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
+        const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${rp.id}</td>
+            <td>📅 ${formatDate(rp.date)}</td>
+            <td>🌓 ${rp.shift}</td>
+            <td>👥 ${rp.group_name}</td>
+            <td title="${colabs.join(', ')}">${colabText}</td>
+            <td>🔧 ${(rp.entries || []).length}</td>
+            <td><button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i> Ver</button></td>`;
+        tbody.appendChild(tr);
+    }
+    // Update "Ver más" button
+    let moreDiv = container.querySelector('.text-center.mt-2');
+    if (_searchHasMore) {
+        const count = container.querySelectorAll('table tbody tr').length;
+        if (moreDiv) {
+            moreDiv.remove();
+        }
+        const d = document.createElement('div');
+        d.className = 'text-center mt-2';
+        d.innerHTML = `<button class="btn btn-outline-light btn-sm" onclick="loadMoreReports()"><i class="bi bi-plus-circle"></i> Ver más</button>`;
+        container.appendChild(d);
+        const p = container.querySelector('.text-muted.small.mt-1');
+        if (p) p.textContent = `Mostrando ${count} reporte(s)`;
+    } else if (moreDiv) {
+        moreDiv.remove();
+    }
+}
+
+function loadMoreReports() {
+    fetchReports({ ..._searchParams, limit: 50 }, false);
+}
+
+async function exportCSV() {
+    const params = new URLSearchParams();
+    const f = document.getElementById('searchDateFrom').value;
+    const t = document.getElementById('searchDateTo').value;
+    if (f) params.set('date_from', f);
+    if (t) params.set('date_to', t);
+    window.location.href = `/api/reports/export/csv?${params}`;
+}
+
+async function exportExcel() {
+    const params = new URLSearchParams();
+    const f = document.getElementById('searchDateFrom').value;
+    const t = document.getElementById('searchDateTo').value;
+    if (f) params.set('date_from', f);
+    if (t) params.set('date_to', t);
+    window.location.href = `/api/reports/export/excel?${params}`;
+}
+
+async function viewReport(id) {
+    try {
+        const r = await (await fetch(`/api/reports/${id}`)).json();
+
+        // ── Header info ──
+        let html = `<div class="mb-3 p-3 border border-info rounded" style="background:rgba(13,110,253,0.05)">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span style="font-size:1.5rem;">📋</span>
+                <h5 class="mb-0 text-info">Reporte <strong>#${r.id}</strong></h5>
+            </div>
+            <table style="width:100%;font-size:0.9rem;">
+                <tr><td style="width:100px;color:#94a3b8;">📅 Fecha</td><td><strong>${formatDate(r.date)}</strong></td></tr>
+                <tr><td style="color:#94a3b8;">🌓 Turno</td><td><strong>${r.shift}</strong></td></tr>
+                <tr><td style="color:#94a3b8;">👥 Grupo</td><td><strong>${r.group_name}</strong></td></tr>
+            </table>
+        </div>`;
+
+        // ── Entries ──
+        (r.entries || []).forEach((e, i) => {
+            const colabs = e.collaborators || '—';
+
+            const meterLines = [];
+            if (e.horometer_motor) meterLines.push(`🔄 Horómetro Motor: <strong>${e.horometer_motor}</strong>`);
+            if (e.horometer_motor_jumbo) meterLines.push(`🔄 Horómetro Jumbo: <strong>${e.horometer_motor_jumbo}</strong>`);
+            if (e.horometer_motor_volquetes) meterLines.push(`🔄 Horómetro Motor: <strong>${e.horometer_motor_volquetes}</strong>`);
+            if (e.horometer_electric) meterLines.push(`⚡ Horómetro Eléctrico: <strong>${e.horometer_electric}</strong>`);
+            if (e.horometer_percussion) meterLines.push(`🔨 Horómetro Percusión: <strong>${e.horometer_percussion}</strong>`);
+            if (e.kilometer) meterLines.push(`📏 Kilometraje: <strong>${e.kilometer}</strong>`);
+
+            html += `
+<div class="mb-3 p-3 border border-warning rounded" style="background:rgba(245,158,11,0.05)">
+  <h6 class="text-warning mb-2">🔧 Trabajo #${i + 1}</h6>
+  <table style="width:100%;font-size:0.9rem;">
+    <tr><td style="width:140px;color:#94a3b8;vertical-align:top;">🏭 Macroproceso</td><td><strong>${e.macroprocess || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">📌 Tipo de Trabajo</td><td><strong>${e.work_type || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">⚡ Acción</td><td><strong>${e.action || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">🧑‍🔧 Colaboradores</td><td><strong>${colabs}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">📝 Descripción</td><td>${e.description || '—'}</td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">⚙️ Equipo</td><td><strong>${e.equipment || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">📊 Nivel</td><td><strong>${e.level || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">📍 Lugar</td><td><strong>${e.location || '—'}</strong></td></tr>
+    <tr><td style="color:#94a3b8;vertical-align:top;">⏱️ Tiempo</td><td><strong>${e.start_time_int || '?'} → ${e.end_time_int || '?'}</strong> (🕒 ${e.duration || '—'})</td></tr>
+    ${meterLines.length ? `<tr><td style="color:#94a3b8;vertical-align:top;">📊 Medidores</td><td>${meterLines.join('<br>')}</td></tr>` : ''}
+  </table>`;
+
+            if (e.images?.length) {
+                html += '<div class="d-flex flex-wrap gap-2 mt-2">';
+                e.images.forEach(img => {
+                    html += `<img src="/static/uploads/${img.filename}" width="80" height="80" style="object-fit:cover;border-radius:4px;border:1px solid #495057;">`;
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+        });
+
+        // WhatsApp button
+        const waText = buildWhatsAppText(r, null, r, null);
+        const waGroup = getWhatsAppGroup(r.group_name);
+        const waUrl = getWhatsAppUrl(waText);
+        html += `<div class="d-grid gap-2 mt-3">
+            <a href="${waUrl}" target="_blank" class="btn btn-success">
+                <i class="bi bi-whatsapp"></i> Enviar a ${waGroup}
+            </a>
+        </div>`;
+
+        showModal(`📋 Reporte #${r.id}`, html);
+    } catch (err) {
+        showModal('Error', `<div class="alert alert-danger">${err.message}</div>`);
+    }
+}
+
+function formatDate(isoDate) {
+    if (!isoDate) return '—';
+    const parts = isoDate.split('-');
+    if (parts.length !== 3) return isoDate;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+
+function showModal(title, body) {
+    document.getElementById('resultModalTitle').textContent = title;
+    document.getElementById('resultModalBody').innerHTML = body;
+    new bootstrap.Modal(document.getElementById('resultModal')).show();
+}
+
+// ─── WHATSAPP ───────────────────────────────────────────────────────────────
+
+function getWhatsAppUrl(text) {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const encoded = encodeURIComponent(text);
+    if (isMobile) {
+        return `whatsapp://send?text=${encoded}`;
+    }
+    return `https://web.whatsapp.com/send?text=${encoded}`;
+}
+
+function getWhatsAppGroup(groupName) {
+    if (groupName.includes('Trackless')) return 'REPORTE DIARIO DE MANTTO TRACKLES GENERAL';
+    if (groupName.includes('Convencional')) return 'TALLER SOLDADURA Y MECANICA CONVENCIONAL';
+    if (groupName.includes('Electrico')) return 'ELECTRICISTAS';
+    return 'REPORTE DE MANTENIMIENTO';
+}
+
+function buildWhatsAppText(report, entriesData, payload, entryImages) {
+    const group = payload?.group_name || report.group_name;
+    const baseUrl = window.location.origin;
+    const sep = '═══════════════════════════════';
+    let msg = `📋 *REPORTE DE MANTENIMIENTO #${report.id}*\n`;
+    msg += `📅 Fecha: ${formatDate(report.date)}\n`;
+    msg += `🌓 Turno: ${report.shift}\n`;
+    msg += `👥 Grupo: ${group}\n\n`;
+
+    (report.entries || []).forEach((e, i) => {
+        const ed = entriesData?.[i] || {};
+        const colabs = ed.collaborators || e.collaborators || '—';
+
+        msg += `🔧 *TRABAJO #${i + 1}*\n`;
+        msg += `🏭 Macroproceso: ${e.macroprocess || '—'}\n`;
+        msg += `📌 Tipo: ${e.work_type || '—'}\n`;
+        msg += `⚡ Acción: ${e.action || '—'}\n`;
+        msg += `🧑‍🔧 Colaboradores: ${colabs}\n`;
+        msg += `📝 Descripción: ${(e.description || '—').substring(0, 200)}\n`;
+        msg += `⚙️ Equipo: ${e.equipment || '—'}\n`;
+        msg += `📊 Nivel: ${e.level || '—'}\n`;
+        msg += `📍 Lugar: ${e.location || '—'}\n`;
+        msg += `⏱️ Tiempo: ${e.start_time_int || '?'} → ${e.end_time_int || '?'} (🕒 ${e.duration || '—'})\n`;
+
+        const meters = [];
+        if (e.horometer_motor) meters.push(`🔄 H.Motor: ${e.horometer_motor}`);
+        if (e.horometer_motor_jumbo) meters.push(`🔄 H.Jumbo: ${e.horometer_motor_jumbo}`);
+        if (e.horometer_motor_volquetes) meters.push(`🔄 H.Motor: ${e.horometer_motor_volquetes}`);
+        if (e.horometer_electric) meters.push(`⚡ H.Eléctrico: ${e.horometer_electric}`);
+        if (e.horometer_percussion) meters.push(`🔨 H.Percusión: ${e.horometer_percussion}`);
+        if (e.kilometer) meters.push(`📏 Km: ${e.kilometer}`);
+        if (meters.length) msg += `📊 Medidores: ${meters.join(' | ')}\n`;
+
+        // Images
+        const imgs = entryImages?.[i] || e.images || [];
+        if (imgs.length > 0) {
+            msg += `📸 *Fotos:*\n`;
+            imgs.forEach(fname => {
+                const url = typeof fname === 'string' ? `${baseUrl}/static/uploads/${fname}` : (fname.filename ? `${baseUrl}/static/uploads/${fname.filename}` : null);
+                if (url) msg += `${url}\n`;
+            });
+        }
+
+        msg += `\n${sep}\n\n`;
+    });
+
+    msg += `📲 *Enviado desde el Sistema de Reporte Diario*`;
+    return msg;
+}
+
+// ─── DAILY REPORTS ─────────────────────────────────────────────────────────
+
+let dailyReportsVisible = false;
+
+function toggleDailyReports() {
+    const panel = document.getElementById('dailyReportsPanel');
+    dailyReportsVisible = !dailyReportsVisible;
+    panel.classList.toggle('d-none', !dailyReportsVisible);
+    if (dailyReportsVisible) {
+        loadDailyReports();
+        // Default date = yesterday
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        document.getElementById('dailyReportDate').value = d.toISOString().split('T')[0];
+    }
+}
+
+async function loadDailyReports() {
+    const container = document.getElementById('dailyReportsList');
+    try {
+        const r = await fetch('/api/daily-reports');
+        const reports = await r.json();
+        if (!reports.length) {
+            container.innerHTML = '<p class="text-muted">No hay reportes diarios generados.</p>';
+            return;
+        }
+        let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr class="table-dark"><th>📅 Fecha</th><th>📄 Archivo</th><th>📦 Tamaño</th><th></th></tr></thead><tbody>';
+        for (const rp of reports) {
+            html += `<tr>
+                <td>${rp.date}</td>
+                <td>${rp.filename}</td>
+                <td>${rp.size_str}</td>
+                <td><a href="/static/daily_reports/${rp.filename}" class="btn btn-sm btn-success"><i class="bi bi-download"></i></a></td>
+            </tr>`;
+        }
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    } catch (err) {
+        container.innerHTML = `<p class="text-danger">Error: ${err.message}</p>`;
+    }
+}
+
+async function generateDailyReport() {
+    const dateInput = document.getElementById('dailyReportDate').value;
+    const btn = document.querySelector('#dailyReportsPanel .btn-primary');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
+    try {
+        const r = await fetch('/api/daily-reports/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target_date: dateInput }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+            showModal('Reporte Generado', `
+                <div class="alert alert-success">
+                    Reporte generado: <strong>${data.filename}</strong>
+                </div>
+                <a href="${data.path}" class="btn btn-success"><i class="bi bi-download"></i> Descargar</a>
+            `);
+            loadDailyReports();
+        } else {
+            showModal('Error', `<div class="alert alert-danger">${data.detail || 'Error'}</div>`);
+        }
+    } catch (err) {
+        showModal('Error', `<div class="alert alert-danger">${err.message}</div>`);
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Generar Reporte';
+}

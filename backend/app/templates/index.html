@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Diario de Mantenimiento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/style.css?v=4" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-navbar border-bottom border-warning mb-4 py-0 navbar-expand-md">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="/static/logo.jpg" alt="Logo" class="me-3 d-none d-sm-block" style="height:50px;width:auto;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                <span class="navbar-brand mb-0 h1 text-warning fw-bold fs-6 fs-md-5">
+                    <i class="bi bi-tools me-2"></i>Reporte Diario
+                </span>
+            </div>
+            <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <div class="d-flex flex-wrap gap-1 ms-auto py-2 py-md-0">
+                    <button class="btn btn-outline-warning btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse" onclick="document.getElementById('navbarMain').classList.remove('show')">
+                        <i class="bi bi-search"></i> <span class="d-none d-sm-inline">Ver Reportes</span>
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" type="button" onclick="toggleDailyReports();document.getElementById('navbarMain').classList.remove('show')">
+                        <i class="bi bi-calendar-week"></i> <span class="d-none d-sm-inline">Diarios</span>
+                    </button>
+                    <a href="/api/reports/export/excel" class="btn btn-success btn-sm">
+                        <i class="bi bi-file-earmark-excel"></i> <span class="d-none d-sm-inline">Excel</span>
+                    </a>
+                    <a href="/admin" class="btn btn-outline-warning btn-sm">
+                        <i class="bi bi-gear"></i> <span class="d-none d-sm-inline">Admin</span>
+                    </a>
+                    <button class="btn btn-outline-light btn-sm" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> <span class="d-none d-sm-inline">Nuevo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-4">
+        <div class="collapse" id="searchCollapse">
+            <div class="card card-body bg-dark border-secondary mb-4">
+                <h5><i class="bi bi-search"></i> Buscar Reportes</h5>
+                <div class="row g-2">
+                    <div class="col-md-4"><input type="text" class="form-control form-control-sm" id="searchWorker" placeholder="Nombre del trabajador"></div>
+                    <div class="col-md-3"><input type="date" class="form-control form-control-sm" id="searchDateFrom"></div>
+                    <div class="col-md-3"><input type="date" class="form-control form-control-sm" id="searchDateTo"></div>
+                    <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" onclick="searchReports()"><i class="bi bi-search"></i> Buscar</button></div>
+                </div>
+                <div class="mt-2 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-light" onclick="loadRecentReports(20)"><i class="bi bi-clock-history"></i> Últimos 20</button>
+                    <button class="btn btn-sm btn-success" onclick="exportExcel()"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="exportCSV()"><i class="bi bi-download"></i> CSV</button>
+                </div>
+                <div id="searchResults" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- Daily Reports Panel -->
+        <div class="card bg-dark border-secondary mb-3 d-none" id="dailyReportsPanel">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Reportes Diarios</h5>
+                <button class="btn btn-sm btn-primary" onclick="generateDailyReport()"><i class="bi bi-plus-circle"></i> Generar</button>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                        <input type="date" class="form-control form-control-sm" id="dailyReportDate">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary btn-sm" onclick="generateDailyReport()"><i class="bi bi-file-earmark-excel"></i> Generar Reporte</button>
+                    </div>
+                </div>
+                <div id="dailyReportsList">
+                    <p class="text-muted small">Cargando reportes...</p>
+                </div>
+            </div>
+        </div>
+
+        <form id="reportForm">
+            <!-- DATOS GENERALES -->
+            <div class="card bg-dark border-secondary mb-3">
+                <div class="card-header bg-secondary bg-opacity-25">
+                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Datos Generales</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">📅 Fecha</label>
+                            <input type="date" class="form-control" id="reportDate" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">🌓 Turno de trabajo</label>
+                            <select class="form-select" id="shift" required><option value="">Seleccionar...</option></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">👥 ¿A qué Grupo de Trabajo Perteneces?</label>
+                            <select class="form-select" id="groupName" required onchange="onGroupChange()">
+                                <option value="">Seleccionar...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ENTRADAS DE TRABAJO -->
+            <div id="entriesContainer">
+                <div class="card bg-dark border-secondary mb-3 entry-card">
+                    <div class="card-header bg-secondary bg-opacity-25 d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-gear"></i> Trabajo <span class="entry-num">#1</span></h5>
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-entry" onclick="removeEntry(this)" style="display:none"><i class="bi bi-trash"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Colaboradores (por entrada) -->
+                        <div class="entry-colab-section d-none border border-secondary rounded p-3 mb-3">
+                            <h6 class="text-info"><i class="bi bi-people"></i> Colaboradores de este trabajo</h6>
+                            <p class="text-muted small">Seleccione como máximo <span class="colab-max-label">4</span> opciones.</p>
+                            <div class="entry-colab-checkboxes row g-2"></div>
+                            <div class="entry-colab-otras-row mt-2 d-none">
+                                <label class="form-label">✏️ Especifique otros colaboradores:</label>
+                                <input type="text" class="form-control entry-colab-otras-input" placeholder="Nombres separados por coma">
+                            </div>
+                            <button type="button" class="btn btn-warning mt-2 entry-colab-done d-none">Listo, continuar →</button>
+                        </div>
+
+                        <!-- Macroproceso -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">🏭 Macroproceso de Mantenimiento</label>
+                                <select class="form-select macroprocess" onchange="onMacroprocessChange(this)">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">🔧 Tipo de Trabajo</label>
+                                <select class="form-select work-type" onchange="onWorkTypeChange(this)">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Acción + Descripción -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">⚡ ¿Qué acción realizaste?</label>
+                                <select class="form-select action-type">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label">📝 Describa todas las actividades realizadas</label>
+                                <textarea class="form-control descripcion" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Nivel, Lugar, Tiempos -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">📊 Nivel donde se trabajó</label>
+                                <select class="form-select nivel">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">📍 Labor o lugar</label>
+                                <input type="text" class="form-control lugar">
+                            </div>
+                            <div class="col-md-2">
+                            <label class="form-label">🕐 Hora inicio <small class="text-muted fw-normal">(24h)</small></label>
+                            <input type="time" class="form-control hora-inicio">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">🕐 Hora término <small class="text-muted fw-normal">(24h)</small></label>
+                            <input type="time" class="form-control hora-fin">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">⏱️ Duración</label>
+                                <input type="text" class="form-control duracion" placeholder="HH:MM" readonly>
+                            </div>
+                        </div>
+
+                        <!-- Equipo -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">🚜 ¿Qué equipo Interviniste?</label>
+                                <select class="form-select equipo-categoria" onchange="onEquipoCategoriaChange(this)">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label">⚙️ Especificación del equipo</label>
+                            <select class="form-select equipo-sub" onchange="onSubEquipoChange(this)">
+                                <option value="">Primero seleccione un equipo</option>
+                            </select>
+                            <input type="text" class="form-control equipo-sub-otras mt-2 d-none" placeholder="Especifique el equipo...">
+                        </div>
+                        </div>
+
+                        <!-- Medidores (se muestran según el equipo) -->
+                        <div class="medidores-section border border-secondary rounded p-3 mb-3 d-none">
+                            <h6 class="text-info"><i class="bi bi-speedometer2"></i> Lecturas del equipo</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4 medidor-fin d-none">
+                                    <p class="text-muted small">No requiere lectura de medidor.</p>
+                                </div>
+                                <div class="col-md-3 medidor-horometro-motor d-none">
+                                    <label class="form-label">🔄 Horómetro de Motor</label>
+                                    <input type="number" step="0.1" class="form-control horometro-motor">
+                                </div>
+                                <div class="col-md-3 medidor-horometro-jumbo d-none">
+                                    <label class="form-label">🔄 Horómetro Motor - Jumbo</label>
+                                    <input type="number" step="0.1" class="form-control horometro-jumbo">
+                                </div>
+                                <div class="col-md-3 medidor-horometro-volquetes d-none">
+                                    <label class="form-label">🔄 Horómetro de Motor</label>
+                                    <input type="number" step="0.1" class="form-control horometro-volquetes">
+                                </div>
+                                <div class="col-md-3 medidor-kilometraje d-none">
+                                    <label class="form-label">📏 Kilometraje</label>
+                                    <input type="number" step="0.1" class="form-control kilometraje">
+                                </div>
+                                <div class="col-md-3 medidor-horometro-electrico d-none">
+                                    <label class="form-label">⚡ Horómetro Eléctrico</label>
+                                    <input type="number" step="0.1" class="form-control horometro-electrico">
+                                </div>
+                                <div class="col-md-3 medidor-horometro-percusion d-none">
+                                    <label class="form-label">🔨 Horómetro de Percusión</label>
+                                    <input type="number" step="0.1" class="form-control horometro-percusion">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Imágenes -->
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">📸 Imágenes del trabajo</label>
+                                <input type="file" class="form-control" accept="image/*" multiple>
+                                <small class="text-muted d-block mt-1">Suba fotos como evidencia del trabajo realizado</small>
+                                <div class="image-preview mt-2 d-flex flex-wrap gap-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <button type="button" class="btn btn-outline-success flex-fill" onclick="addEntry()">
+                    <i class="bi bi-plus-circle"></i> Agregar otro trabajo
+                </button>
+                <button type="submit" class="btn btn-primary flex-fill">
+                    <i class="bi bi-send"></i> Enviar Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Confirm modal (Yes/No) -->
+    <div class="modal fade" id="confirmModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content bg-dark border-warning">
+                <div class="modal-header border-warning">
+                    <h6 class="modal-title text-warning"><i class="bi bi-question-circle"></i> Confirmar</h6>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer border-secondary">
+                    <button id="confirmNo" class="btn btn-outline-light"><i class="bi bi-x-lg"></i> No</button>
+                    <button id="confirmYes" class="btn btn-warning"><i class="bi bi-check-lg"></i> Sí</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="resultModalTitle">Resultado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="resultModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/app.js?v=4"></script>
+</body>
+</html>
