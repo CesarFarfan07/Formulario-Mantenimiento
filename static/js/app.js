@@ -654,11 +654,15 @@ async function addEntry() {
     // Collect previous entry values BEFORE cloning
     const previousEntry = cards[cards.length - 1];
     let prevNivel = null, prevLugar = null, prevColabs = null;
+    let prevEquipoCat = null, prevEquipoSub = null, prevEquipoOtras = null;
 
     if (previousEntry) {
         prevNivel = previousEntry.querySelector('.nivel')?.value;
         prevLugar = previousEntry.querySelector('.lugar')?.value;
         prevColabs = getCardColaboradores(previousEntry);
+        prevEquipoCat = previousEntry.querySelector('.equipo-categoria')?.value;
+        prevEquipoSub = previousEntry.querySelector('.equipo-sub')?.value;
+        prevEquipoOtras = previousEntry.querySelector('.equipo-sub-otras')?.value;
     }
 
     // Reset clone fields
@@ -763,6 +767,12 @@ async function addEntry() {
             copyLugar = await confirmYesNo('¿Es la misma labor o lugar de trabajo?');
         }
 
+        // Step 4: Ask about equipment (only if previous entry had equipment)
+        let copyEquipo = false;
+        if (prevEquipoCat) {
+            copyEquipo = await confirmYesNo('¿Es el mismo equipo que la entrada anterior?');
+        }
+
         // Apply copies
         if (copyTrabajadores && previousEntry) {
             const srcChecks = previousEntry.querySelectorAll('.colab-check');
@@ -794,6 +804,40 @@ async function addEntry() {
         if (copyLugar && prevLugar) {
             const dstLugar = clone.querySelector('.lugar');
             if (dstLugar) dstLugar.value = prevLugar;
+        }
+
+        // Apply equipment copy (equipo, sub-equipo, sub-otras, meter fields — NOT horometers)
+        if (copyEquipo && prevEquipoCat) {
+            const dstCat = clone.querySelector('.equipo-categoria');
+            const dstSub = clone.querySelector('.equipo-sub');
+            const dstOtras = clone.querySelector('.equipo-sub-otras');
+            if (dstCat) {
+                dstCat.value = prevEquipoCat;
+                // Trigger change to populate sub-equipos
+                const evt = new Event('change', { bubbles: true });
+                dstCat.dispatchEvent(evt);
+            }
+            if (dstSub && prevEquipoSub) {
+                // Wait briefly for sub-equipo options to be populated by the change event
+                setTimeout(() => {
+                    dstSub.value = prevEquipoSub;
+                    if (prevEquipoSub === '__otras__' && dstOtras) {
+                        dstOtras.value = prevEquipoOtras || '';
+                        dstOtras.classList.remove('d-none');
+                    }
+                    // Show meter fields based on selected sub-equipo
+                    const selectedOpt = dstSub.options[dstSub.selectedIndex];
+                    const mide = selectedOpt?.dataset?.mide || null;
+                    const metersSection = clone.querySelector('.medidores-section');
+                    if (metersSection) {
+                        metersSection.classList.remove('d-none');
+                        // Hide all meter inputs first
+                        metersSection.querySelectorAll('.meter-input').forEach(el => el.classList.add('d-none'));
+                        metersSection.querySelector('.medidor-fin')?.classList.add('d-none');
+                    }
+                    if (mide) showMeters(clone, mide);
+                }, 100);
+            }
         }
     }
 
@@ -953,11 +997,10 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
 
         // Build WhatsApp text
         const waText = buildWhatsAppText(report, entries, payload);
-        const waGroup = getWhatsAppGroup(payload.group_name);
         const waUrl = getWhatsAppUrl(waText);
-        successHtml += `<div class="d-grid gap-2 mt-3">
-            <a href="${waUrl}" target="_blank" class="btn btn-success">
-                <i class="bi bi-whatsapp"></i> Enviar a ${waGroup}
+        successHtml += `<div class="mt-3 text-center">
+            <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
+                <i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp
             </a>
         </div>`;
 
@@ -1197,11 +1240,10 @@ async function viewReport(id) {
 
         // WhatsApp button
         const waText = buildWhatsAppText(r, null, r);
-        const waGroup = getWhatsAppGroup(r.group_name);
         const waUrl = getWhatsAppUrl(waText);
-        html += `<div class="d-grid gap-2 mt-3">
-            <a href="${waUrl}" target="_blank" class="btn btn-success">
-                <i class="bi bi-whatsapp"></i> Enviar a ${waGroup}
+        html += `<div class="mt-3 text-center">
+            <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
+                <i class="bi bi-whatsapp me-1"></i> Enviar Reporte por WhatsApp
             </a>
         </div>`;
 

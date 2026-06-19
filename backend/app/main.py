@@ -4,7 +4,7 @@ import io
 import csv
 from io import BytesIO
 import shutil
-from datetime import date, time, datetime
+from datetime import date, time, datetime, timedelta
 from typing import List
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Form, Query, Request, Body
 from fastapi.staticfiles import StaticFiles
@@ -12,6 +12,8 @@ from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, joinedload
+
+from sqlalchemy import func as _sf, text as _st
 
 from .database import engine, get_db, Base, SessionLocal
 from .excel_export import build_excel
@@ -120,7 +122,6 @@ def seed_config():
 seed_config()
 
 # ─── Add default_action column to work_types if not exists ─────────────
-from sqlalchemy import text as _st
 try:
     _d = SessionLocal()
     _d.execute(_st('ALTER TABLE work_types ADD COLUMN default_action VARCHAR(200)'))
@@ -132,7 +133,6 @@ finally:
     _d.close()
 
 # ─── Data migration: split Convencional_Electrico actions ───────────────
-from sqlalchemy import func as _sf
 try:
     _d = SessionLocal()
     old_actions = _d.query(Action).filter(Action.group_key == 'Convencional_Electrico').all()
@@ -526,7 +526,6 @@ def get_daily_reports():
 @app.post("/api/daily-reports/generate")
 def generate_daily(target_date: str = Body("", embed=True), db: Session = Depends(get_db)):
     """Generate daily report for a given date (YYYY-MM-DD). Defaults to yesterday."""
-    from datetime import timedelta
     if target_date and target_date.strip():
         d = parse_date(target_date.strip())
     else:
@@ -745,6 +744,352 @@ def get_options(db: Session = Depends(get_db)):
         "niveles": niveles,
         "equipos": equipos,
     }
+
+
+# ─── Dashboard ────────────────────────────────────────────────────────────────
+
+def _parse_duration_minutes(dur):
+    if not dur:
+        return None
+    try:
+        parts = dur.strip().split(":")
+        if len(parts) == 2:
+            return int(parts[0]) * 60 + int(parts[1])
+        if len(parts) == 3:
+            return int(parts[0]) * 60 + int(parts[1])
+    except (ValueError, IndexError):
+        pass
+    return None
+
+
+def _build_filtered_query(db, date_from, date_to, group):
+    """Return a base query of JobEntry joined to Report with filters applied."""
+    q = db.query(JobEntry).join(Report)
+    if date_from:
+        q = q.filter(Report.date >= parse_date(date_from))
+    if date_to:
+        q = q.filter(Report.date <= parse_date(date_to))
+    if group:
+        q = q.filter(Report.group_name == group)
+    return q
+
+
+def _compute_period_stats(db, date_from, date_to, group):
+    """Compute all stats for a single period."""
+    q_base = _build_filtered_query(db, date_from, date_to, group)
+
+    # Total jobs
+    total_jobs = q_base.with_entities(_sf.count(JobEntry.id)).scalar() or 0
+
+    # Distinct workers
+    workers = (
+        db.query(Worker.id, Worker.name, Worker.group_name)
+        .join(Report)
+    )
+    if date_from:
+        workers = workers.filter(Report.date >= parse_date(date_from))
+    if date_to:
+        workers = workers.filter(Report.date <= parse_date(date_to))
+    if group:
+        workers = workers.filter(Report.group_name == group)
+    workers = workers.distinct().all()
+    worker_count = len(workers)
+
+    # Distinct collaborators
+    collab_q = q_base.with_entities(JobEntry.collaborators).filter(JobEntry.collaborators.isnot(None))
+    collab_names = set()
+    for (c,) in collab_q.all():
+        for name in c.split(","):
+            name = name.strip()
+            if name:
+                collab_names.add(name)
+
+    # Total duration hours
+    dur_q = q_base.with_entities(JobEntry.duration).filter(JobEntry.duration.isnot(None), JobEntry.duration != "")
+    total_minutes = 0
+    for (d,) in dur_q.all():
+        m = _parse_duration_minutes(d)
+        if m is not None:
+            total_minutes += m
+    total_hours = round(total_minutes / 60, 1) if total_minutes else 0
+
+    # Average job duration
+    avg_minutes = round(total_minutes / total_jobs, 1) if total_jobs else 0
+
+    # Jobs by equipment
+    equip_raw = (
+        q_base.with_entities(JobEntry.equipment, _sf.count(JobEntry.id), _sf.group_concat(JobEntry.duration, "|"))
+        .filter(JobEntry.equipment.isnot(None), JobEntry.equipment != "")
+        .group_by(JobEntry.equipment)
+        .order_by(_sf.count(JobEntry.id).desc())
+        .all()
+    )
+    jobs_by_equipment = []
+    for equip, cnt, durs_raw in equip_raw:
+        durs = durs_raw.split("|") if durs_raw else []
+        mins = [_parse_duration_minutes(d) for d in durs]
+        valid = [m for m in mins if m is not None]
+        avg = round(sum(valid) / len(valid), 1) if valid else None
+        equip_hours = round((sum(valid) / 60), 1) if valid else 0
+        jobs_by_equipment.append({
+            "equipment": equip, "count": cnt,
+            "avg_duration_min": avg, "total_hours": equip_hours,
+        })
+
+    # Jobs by team
+    team_q = (
+        q_base.with_entities(Report.group_name, _sf.count(JobEntry.id))
+        .group_by(Report.group_name)
+        .order_by(_sf.count(JobEntry.id).desc())
+        .all()
+    )
+    jobs_by_team = [{"team": g, "count": c} for g, c in team_q]
+
+    # Avg duration by team
+    team_dur_q = (
+        q_base.with_entities(Report.group_name, _sf.group_concat(JobEntry.duration, "|"))
+        .filter(JobEntry.duration.isnot(None), JobEntry.duration != "")
+        .group_by(Report.group_name)
+        .all()
+    )
+    avg_dur_by_team = []
+    for team, durs_raw in team_dur_q:
+        durs = durs_raw.split("|") if durs_raw else []
+        mins = [_parse_duration_minutes(d) for d in durs]
+        valid = [m for m in mins if m is not None]
+        avg = round(sum(valid) / len(valid), 1) if valid else 0
+        avg_dur_by_team.append({"team": team, "avg_min": avg})
+
+    # Jobs per day (trend)
+    day_q = (
+        q_base.with_entities(Report.date, _sf.count(JobEntry.id))
+        .group_by(Report.date)
+        .order_by(Report.date)
+        .all()
+    )
+    jobs_per_day = [{"date": str(d), "count": c} for d, c in day_q]
+
+    # Shift comparison
+    shift_q = (
+        q_base.with_entities(Report.shift, _sf.count(JobEntry.id))
+        .group_by(Report.shift)
+        .all()
+    )
+    shift_comparison = {s or "Sin turno": c for s, c in shift_q}
+
+    # PM vs CM ratio (action-based: Preventivo ≈ PM, Correctivo ≈ CM)
+    action_q = (
+        q_base.with_entities(JobEntry.action, _sf.count(JobEntry.id))
+        .filter(JobEntry.action.isnot(None), JobEntry.action != "")
+        .group_by(JobEntry.action)
+        .all()
+    )
+    pm_count = sum(c for a, c in action_q if "Preventivo" in (a or ""))
+    cm_count = sum(c for a, c in action_q if "Correctivo" in (a or ""))
+    pm_cm_ratio = {
+        "pm": pm_count,
+        "cm": cm_count,
+        "other": total_jobs - pm_count - cm_count,
+        "pm_pct": round(pm_count / total_jobs * 100, 1) if total_jobs else 0,
+        "cm_pct": round(cm_count / total_jobs * 100, 1) if total_jobs else 0,
+    }
+
+    # Macroprocess distribution
+    macro_q = (
+        q_base.with_entities(JobEntry.macroprocess, _sf.count(JobEntry.id))
+        .filter(JobEntry.macroprocess.isnot(None), JobEntry.macroprocess != "")
+        .group_by(JobEntry.macroprocess)
+        .order_by(_sf.count(JobEntry.id).desc())
+        .all()
+    )
+    macroprocess_dist = [{"macroprocess": m or "Sin especificar", "count": c} for m, c in macro_q]
+
+    # Top collaborators
+    collab_counter = {}
+    for (c,) in collab_q.all():
+        for name in c.split(","):
+            n = name.strip()
+            if n:
+                collab_counter[n] = collab_counter.get(n, 0) + 1
+    top_collaborators = [{"name": k, "count": v} for k, v in
+                         sorted(collab_counter.items(), key=lambda x: -x[1])[:15]]
+
+    # Weekly summaries (ISO weeks within period)
+    weeks = {}
+    for d_str, cnt in day_q:
+        d = d_str if isinstance(d_str, date) else parse_date(str(d_str))
+        if d is None:
+            continue
+        iso = d.isocalendar()
+        week_key = f"{iso[0]}-W{iso[1]:02d}"
+        if week_key not in weeks:
+            # Find week start (Monday)
+            monday = d - timedelta(days=d.weekday())
+            weeks[week_key] = {"week": week_key, "start": str(monday), "count": 0, "by_team": {}}
+        weeks[week_key]["count"] += cnt
+    # Get team breakdown per week
+    for week_key in weeks:
+        ws = parse_date(weeks[week_key]["start"])
+        we = ws + timedelta(days=6)
+        wt_q = (
+            q_base.with_entities(Report.group_name, _sf.count(JobEntry.id))
+            .filter(Report.date >= ws, Report.date <= we)
+            .group_by(Report.group_name)
+            .all()
+        )
+        weeks[week_key]["by_team"] = {g or "Sin grupo": c for g, c in wt_q}
+    weekly_summaries = sorted(weeks.values(), key=lambda x: x["week"])
+
+    return {
+        "kpis": {
+            "total_jobs": total_jobs,
+            "total_hours": total_hours,
+            "worker_count": worker_count,
+            "collaborator_count": len(collab_names),
+            "avg_duration_min": avg_minutes,
+            "pm_pct": pm_cm_ratio["pm_pct"],
+            "cm_pct": pm_cm_ratio["cm_pct"],
+        },
+        "workers": [{"id": w.id, "name": w.name, "team": w.group_name} for w in workers],
+        "jobs_by_equipment": jobs_by_equipment,
+        "top_equipment": jobs_by_equipment[:10],
+        "jobs_per_day": jobs_per_day,
+        "jobs_by_team": jobs_by_team,
+        "avg_duration_by_team": avg_dur_by_team,
+        "shift_comparison": shift_comparison,
+        "pm_cm_ratio": pm_cm_ratio,
+        "macroprocess_dist": macroprocess_dist,
+        "top_collaborators": top_collaborators,
+        "weekly_summaries": weekly_summaries,
+    }
+
+
+def _compute_okrs(stats):
+    """Generate OKR suggestions based on actual data."""
+    pct = stats["pm_cm_ratio"]["pm_pct"]
+    cm_pct = stats["pm_cm_ratio"]["cm_pct"]
+    avg_min = stats["kpis"]["avg_duration_min"]
+    total_jobs = stats["kpis"]["total_jobs"]
+    total_hours = stats["kpis"]["total_hours"]
+    workers = stats["kpis"]["worker_count"]
+    collabs = stats["kpis"]["collaborator_count"]
+
+    okrs = []
+
+    # OKR 1: Maintenance quality
+    okrs.append({
+        "objective": "Mejorar la Calidad del Mantenimiento",
+        "key_results": [
+            {
+                "kr": f"Aumentar mantenimiento preventivo de {pct}% a ≥70%",
+                "current": f"{pct}%",
+                "target": "≥70%",
+                "progress": "on_track" if pct >= 50 else "needs_attention" if pct >= 30 else "critical",
+            },
+            {
+                "kr": f"Reducir mantenimiento correctivo de {cm_pct}% a ≤30%",
+                "current": f"{cm_pct}%",
+                "target": "≤30%",
+                "progress": "on_track" if cm_pct <= 30 else "needs_attention" if cm_pct <= 50 else "critical",
+            },
+            {
+                "kr": f"Reducir tiempo promedio por trabajo de {avg_min} min a ≤60 min",
+                "current": f"{avg_min} min",
+                "target": "≤60 min",
+                "progress": "on_track" if avg_min <= 60 else "needs_attention" if avg_min <= 90 else "critical",
+            },
+        ]
+    })
+
+    # OKR 2: Productivity
+    jobs_per_worker = round(total_jobs / workers, 1) if workers else 0
+    okrs.append({
+        "objective": "Optimizar la Productividad del Equipo",
+        "key_results": [
+            {
+                "kr": f"Mantener ≥4 trabajos por trabajador ({jobs_per_worker} actual)",
+                "current": f"{jobs_per_worker}",
+                "target": "≥4",
+                "progress": "on_track" if jobs_per_worker >= 4 else "needs_attention" if jobs_per_worker >= 2.5 else "critical",
+            },
+            {
+                "kr": f"Aumentar colaboradores activos de {collabs} a ≥{min(collabs + 5, 40)}",
+                "current": f"{collabs}",
+                "target": f"≥{min(collabs + 5, 40)}",
+                "progress": "on_track" if collabs >= 15 else "needs_attention",
+            },
+        ]
+    })
+
+    # OKR 3: Data-driven
+    okrs.append({
+        "objective": "Fortalecer la Gestión Basada en Datos",
+        "key_results": [
+            {
+                "kr": "Registrar 100% de trabajos en plataforma digital",
+                "current": "Activo",
+                "target": "100%",
+                "progress": "on_track",
+            },
+            {
+                "kr": f"Completar {total_jobs}+ registros en el período",
+                "current": f"{total_jobs}",
+                "target": "Creciente",
+                "progress": "on_track" if total_jobs >= 20 else "needs_attention",
+            },
+            {
+                "kr": f"Mantener {total_hours} horas hombre registradas con precisión",
+                "current": f"{total_hours} hrs",
+                "target": "≥100 hrs",
+                "progress": "on_track" if total_hours >= 100 else "needs_attention",
+            },
+        ]
+    })
+
+    return okrs
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_page(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
+
+
+@app.get("/api/dashboard/summary")
+def dashboard_summary(
+    date_from: str = Query(None),
+    date_to: str = Query(None),
+    group: str = Query(None),
+    compare_from: str = Query(None),
+    compare_to: str = Query(None),
+    db: Session = Depends(get_db),
+):
+    today = date.today()
+    if not date_from:
+        date_from = today.replace(day=1).isoformat()
+    if not date_to:
+        date_to = today.isoformat()
+
+    period_label = f"{parse_date(date_from).strftime('%d/%m/%Y')} – {parse_date(date_to).strftime('%d/%m/%Y')}"
+
+    current = _compute_period_stats(db, date_from, date_to, group)
+    current["label"] = period_label
+    current["date_from"] = date_from
+    current["date_to"] = date_to
+
+    result = {
+        "current": current,
+        "comparison": None,
+        "okrs": _compute_okrs(current),
+    }
+
+    if compare_from and compare_to:
+        comp = _compute_period_stats(db, compare_from, compare_to, group)
+        comp["label"] = f"{parse_date(compare_from).strftime('%d/%m/%Y')} – {parse_date(compare_to).strftime('%d/%m/%Y')}"
+        comp["date_from"] = compare_from
+        comp["date_to"] = compare_to
+        result["comparison"] = comp
+
+    return result
 
 
 # ─── Admin routes ─────────────────────────────────────────────────────────────
