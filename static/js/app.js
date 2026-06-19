@@ -81,7 +81,6 @@ function initEntry(card) {
     const hf = card.querySelector('.hora-fin');
     const dur = card.querySelector('.duracion');
     calcularDuracion(hi, hf, dur);
-    card.querySelector('input[type="file"]').addEventListener('change', handleFilePreview);
     populateEquipos(card);
     populateNiveles(card);
 }
@@ -492,7 +491,7 @@ async function addEntry() {
     }
 
     // Reset clone fields
-    clone.querySelectorAll('input:not([type="file"]), textarea, select').forEach(el => {
+    clone.querySelectorAll('input, textarea, select').forEach(el => {
         if (el.tagName === 'SELECT') el.selectedIndex = 0;
         else if (el.type === 'checkbox') el.checked = false;
         else el.value = '';
@@ -510,11 +509,6 @@ async function addEntry() {
         doneBtn.style.boxShadow = '';
         doneBtn.onclick = null;
     }
-
-    const prev = clone.querySelector('.image-preview');
-    if (prev) prev.innerHTML = '';
-    const fileInput = clone.querySelector('input[type="file"]');
-    if (fileInput) fileInput.value = '';
 
     container.appendChild(clone);
     renumberEntries();
@@ -656,32 +650,6 @@ function updateRemoveButtons() {
     });
 }
 
-function handleFilePreview(e) {
-    const input = e.target;
-    const preview = input.closest('.entry-card').querySelector('.image-preview');
-    preview.innerHTML = '';
-    Array.from(input.files).forEach((file, idx) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'image-wrapper';
-        const img = document.createElement('img');
-        img.src = URL.createObjectURL(file);
-        img.style.cssText = 'width:100px;height:100px;object-fit:cover;border-radius:8px;border:2px solid #495057;';
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'remove-image';
-        btn.innerHTML = '×';
-        btn.onclick = () => {
-            wrapper.remove();
-            const dt = new DataTransfer();
-            Array.from(input.files).forEach((f, i) => { if (i !== idx) dt.items.add(f); });
-            input.files = dt.files;
-        };
-        wrapper.appendChild(img);
-        wrapper.appendChild(btn);
-        preview.appendChild(wrapper);
-    });
-}
-
 function getCardColaboradores(card) {
     if (!card) return null;
     const section = card.querySelector('.entry-colab-section');
@@ -754,7 +722,6 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
                 collaborators: getCardColaboradores(card),
             };
 
-            entry._files = card.querySelector('input[type="file"]') ? Array.from(card.querySelector('input[type="file"]').files) : [];
             entry._categoria = equipoCategoria;
             entries.push(entry);
         });
@@ -786,20 +753,6 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
 
         const report = await res.json();
 
-        const entryImages = {};
-        for (let i = 0; i < entries.length; i++) {
-            entryImages[i] = [];
-            for (const file of (entries[i]._files || [])) {
-                const fd = new FormData();
-                fd.append('file', file);
-                try {
-                    const upRes = await fetch(`/api/reports/${report.entries[i].id}/images`, { method: 'POST', body: fd });
-                    const upData = await upRes.json();
-                    if (upData.filename) entryImages[i].push(upData.filename);
-                } catch (_) {}
-            }
-        }
-
         let successHtml = `<div class="alert alert-success">✅ Reporte <strong>#${report.id}</strong> enviado correctamente.</div>`;
 
         report.entries.forEach((e, i) => {
@@ -828,7 +781,7 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         });
 
         // Build WhatsApp text
-        const waText = buildWhatsAppText(report, entries, payload, entryImages);
+        const waText = buildWhatsAppText(report, entries, payload);
         const waGroup = getWhatsAppGroup(payload.group_name);
         const waUrl = getWhatsAppUrl(waText);
         successHtml += `<div class="d-grid gap-2 mt-3">
@@ -842,7 +795,6 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         document.getElementById('reportForm').reset();
         document.getElementById('reportDate').value = new Date().toISOString().split('T')[0];
         document.querySelectorAll('.entry-card').forEach((c, i) => { if (i > 0) c.remove(); });
-        document.querySelectorAll('.image-preview').forEach(el => el.innerHTML = '');
         // Reset per-entry collaborators in remaining card
         document.querySelectorAll('.entry-colab-section').forEach(sec => {
             sec.classList.add('d-none');
@@ -1067,20 +1019,12 @@ async function viewReport(id) {
     <tr><td style="color:#94a3b8;vertical-align:top;">📍 Lugar</td><td><strong>${e.location || '—'}</strong></td></tr>
     <tr><td style="color:#94a3b8;vertical-align:top;">⏱️ Tiempo</td><td><strong>${e.start_time_int || '?'} → ${e.end_time_int || '?'}</strong> (🕒 ${e.duration || '—'})</td></tr>
     ${meterLines.length ? `<tr><td style="color:#94a3b8;vertical-align:top;">📊 Medidores</td><td>${meterLines.join('<br>')}</td></tr>` : ''}
-  </table>`;
-
-            if (e.images?.length) {
-                html += '<div class="d-flex flex-wrap gap-2 mt-2">';
-                e.images.forEach(img => {
-                    html += `<img src="/static/uploads/${img.filename}" width="80" height="80" style="object-fit:cover;border-radius:4px;border:1px solid #495057;">`;
-                });
-                html += '</div>';
-            }
-            html += '</div>';
+  </table>
+</div>`;
         });
 
         // WhatsApp button
-        const waText = buildWhatsAppText(r, null, r, null);
+        const waText = buildWhatsAppText(r, null, r);
         const waGroup = getWhatsAppGroup(r.group_name);
         const waUrl = getWhatsAppUrl(waText);
         html += `<div class="d-grid gap-2 mt-3">
@@ -1126,9 +1070,8 @@ function getWhatsAppGroup(groupName) {
     return 'REPORTE DE MANTENIMIENTO';
 }
 
-function buildWhatsAppText(report, entriesData, payload, entryImages) {
+function buildWhatsAppText(report, entriesData, payload) {
     const group = payload?.group_name || report.group_name;
-    const baseUrl = window.location.origin;
     const sep = '═══════════════════════════════';
     let msg = `📋 *REPORTE DE MANTENIMIENTO #${report.id}*\n`;
     msg += `📅 Fecha: ${formatDate(report.date)}\n`;
@@ -1158,16 +1101,6 @@ function buildWhatsAppText(report, entriesData, payload, entryImages) {
         if (e.horometer_percussion) meters.push(`🔨 H.Percusión: ${e.horometer_percussion}`);
         if (e.kilometer) meters.push(`📏 Km: ${e.kilometer}`);
         if (meters.length) msg += `📊 Medidores: ${meters.join(' | ')}\n`;
-
-        // Images
-        const imgs = entryImages?.[i] || e.images || [];
-        if (imgs.length > 0) {
-            msg += `📸 *Fotos:*\n`;
-            imgs.forEach(fname => {
-                const url = typeof fname === 'string' ? `${baseUrl}/static/uploads/${fname}` : (fname.filename ? `${baseUrl}/static/uploads/${fname.filename}` : null);
-                if (url) msg += `${url}\n`;
-            });
-        }
 
         msg += `\n${sep}\n\n`;
     });
