@@ -1063,33 +1063,38 @@ def dashboard_summary(
     compare_to: str = Query(None),
     db: Session = Depends(get_db),
 ):
-    today = date.today()
-    if not date_from:
-        date_from = today.replace(day=1).isoformat()
-    if not date_to:
-        date_to = today.isoformat()
+    try:
+        today = date.today()
+        if not date_from:
+            date_from = today.replace(day=1).isoformat()
+        if not date_to:
+            date_to = today.isoformat()
 
-    period_label = f"{parse_date(date_from).strftime('%d/%m/%Y')} – {parse_date(date_to).strftime('%d/%m/%Y')}"
+        period_label = f"{parse_date(date_from).strftime('%d/%m/%Y')} – {parse_date(date_to).strftime('%d/%m/%Y')}"
 
-    current = _compute_period_stats(db, date_from, date_to, group)
-    current["label"] = period_label
-    current["date_from"] = date_from
-    current["date_to"] = date_to
+        current = _compute_period_stats(db, date_from, date_to, group)
+        current["label"] = period_label
+        current["date_from"] = date_from
+        current["date_to"] = date_to
 
-    result = {
-        "current": current,
-        "comparison": None,
-        "okrs": _compute_okrs(current),
-    }
+        result = {
+            "current": current,
+            "comparison": None,
+            "okrs": _compute_okrs(current),
+        }
 
-    if compare_from and compare_to:
-        comp = _compute_period_stats(db, compare_from, compare_to, group)
-        comp["label"] = f"{parse_date(compare_from).strftime('%d/%m/%Y')} – {parse_date(compare_to).strftime('%d/%m/%Y')}"
-        comp["date_from"] = compare_from
-        comp["date_to"] = compare_to
-        result["comparison"] = comp
+        if compare_from and compare_to:
+            comp = _compute_period_stats(db, compare_from, compare_to, group)
+            comp["label"] = f"{parse_date(compare_from).strftime('%d/%m/%Y')} – {parse_date(compare_to).strftime('%d/%m/%Y')}"
+            comp["date_from"] = compare_from
+            comp["date_to"] = compare_to
+            result["comparison"] = comp
 
-    return result
+        return result
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Error generando dashboard: {exc}")
 
 
 # ─── Admin routes ─────────────────────────────────────────────────────────────

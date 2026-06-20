@@ -1000,7 +1000,7 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         const waUrl = getWhatsAppUrl(waText);
         successHtml += `<div class="mt-3 text-center">
             <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
-                <i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp
+                <i class="bi bi-whatsapp me-1"></i> Enviar Reporte por WhatsApp
             </a>
         </div>`;
 
