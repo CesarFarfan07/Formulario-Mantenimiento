@@ -1,0 +1,1591 @@
+{
+  "turnos": [
+    {
+      "name": "Día",
+      "position": 0
+    },
+    {
+      "name": "Noche",
+      "position": 1
+    }
+  ],
+  "niveles": [
+    {
+      "name": "Nivel 05",
+      "position": 0
+    },
+    {
+      "name": "Nivel 04",
+      "position": 1
+    },
+    {
+      "name": "Nivel 03",
+      "position": 2
+    },
+    {
+      "name": "Nivel 02",
+      "position": 3
+    },
+    {
+      "name": "Nivel 01",
+      "position": 4
+    },
+    {
+      "name": "Nivel 0",
+      "position": 5
+    },
+    {
+      "name": "Nivel -01",
+      "position": 6
+    },
+    {
+      "name": "Nivel -02",
+      "position": 7
+    },
+    {
+      "name": "Nivel -03",
+      "position": 8
+    },
+    {
+      "name": "Nivel -04",
+      "position": 9
+    },
+    {
+      "name": "Nivel -05",
+      "position": 10
+    },
+    {
+      "name": "Campamento",
+      "position": 11
+    },
+    {
+      "name": "PTAR",
+      "position": 12
+    }
+  ],
+  "colaboradores": [
+    {
+      "group_name": "Trackless",
+      "name": "Wilson Apaza",
+      "position": 0
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Moises de la Cadena",
+      "position": 0
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Ronaldo Ccompara",
+      "position": 0
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Elvis Avalos",
+      "position": 1
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Edgardo del Carpio",
+      "position": 1
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Jhonatan Chipane",
+      "position": 1
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Yoel Castillo",
+      "position": 2
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Erik Inca",
+      "position": 2
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Koos Coaquira",
+      "position": 2
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Ronaldo Ccompara",
+      "position": 3
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Alan Llanquecha",
+      "position": 3
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Wilder Espinal",
+      "position": 3
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Yordan Elguera",
+      "position": 4
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Diego Machaca",
+      "position": 4
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Markc Huachaca",
+      "position": 4
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Miguel Espiritu",
+      "position": 5
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Vlady mamani",
+      "position": 5
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Jose Huayra",
+      "position": 5
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Jordi Gallegos",
+      "position": 6
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Artemio Payehuanca",
+      "position": 6
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Santiago Huayra",
+      "position": 6
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Jimy Huaman",
+      "position": 7
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Fredy Taya",
+      "position": 7
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Julio Perez",
+      "position": 7
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Rivaldo Mamani",
+      "position": 8
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Edgar Zela",
+      "position": 8
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Wilber Quijahuaman",
+      "position": 8
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Ademer Moreto",
+      "position": 9
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Aldair Vilca",
+      "position": 9
+    },
+    {
+      "group_name": "Electrico",
+      "name": "Rronar Surco",
+      "position": 9
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Eddy Quispe",
+      "position": 10
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Abraham Dionisio",
+      "position": 10
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Felix Quispe",
+      "position": 11
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Jesús Quispe",
+      "position": 12
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Jesús Ramirez",
+      "position": 13
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Edwin Torres",
+      "position": 14
+    },
+    {
+      "group_name": "Trackless",
+      "name": "Martin Sillocca",
+      "position": 15
+    }
+  ],
+  "macroprocesos": [
+    {
+      "group_key": "Trackless",
+      "name": "Mantenimiento Mecánico",
+      "position": 0
+    },
+    {
+      "group_key": "Trackless",
+      "name": "Mantenimiento Eléctrico",
+      "position": 1
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Mantenimiento Mecánico",
+      "position": 2
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Mantenimiento Eléctrico",
+      "position": 3
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Soldadura y Fabricación",
+      "position": 4
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Instalación de Estructuras",
+      "position": 5
+    },
+    {
+      "group_key": "Electrico",
+      "name": "Mantenimiento Eléctrico",
+      "position": 7
+    },
+    {
+      "group_key": "Electrico",
+      "name": "Instalaciones",
+      "position": 9
+    }
+  ],
+  "tipos_trabajo": [
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Auxilio Mecánico",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 0
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Bombas y Pistones",
+      "default_action": null,
+      "position": 1
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Inspección y Correctivos Generales",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 2
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Inspección y Seguimiento en Labor",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 3
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Mantenimiento Preventivo PM 1",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 4
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Mantenimiento Preventivo PM 2",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 5
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Mantenimiento Preventivo PM 3",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 6
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Mantenimiento Preventivo PM 4",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 7
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Neumaticos",
+      "default_action": null,
+      "position": 8
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Mantenimiento de Perforadora HC50 de Jumbo",
+      "default_action": "",
+      "position": 9
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Sistemas de Dirección",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 10
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Sistema de Embrague",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 11
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Sistema de Frenos",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 12
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Sistemas Hidraulicos",
+      "default_action": null,
+      "position": 13
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Sistemas de Suspensión",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 14
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Trabajos de Metalmecanica",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 15
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
+      "name": "Instalaciones Eléctricas, Iluminacion y Alarmas - Trackless",
+      "default_action": "Instalación",
+      "position": 16
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
+      "name": "Inspeccion General Elect y Seguimiento - Trackless",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 17
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
+      "name": "Mantenimiento Correctivo de Luces - Trackless",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 18
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Inspección y Seguimiento de equipo - General",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 19
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Correcciones Metalmecánica - Convencional",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 21
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivo PM 1",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 22
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivo PM 2",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 23
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivo PM 3",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 24
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivo PM 4",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 25
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Instalaciones Eléctricas",
+      "default_action": "Instalación",
+      "position": 26
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Mantto. Eléctrico",
+      "default_action": "",
+      "position": 27
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Rebobinado de Motor",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 28
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Inspección y Seguimiento",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 29
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Mina",
+      "default_action": null,
+      "position": 30
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones para Administración",
+      "default_action": null,
+      "position": 31
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Talleres",
+      "default_action": null,
+      "position": 32
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones de Alcayatas",
+      "default_action": null,
+      "position": 33
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivo",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 34
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Correctivo",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 35
+    },
+    {
+      "type_key": "Instalaciones",
+      "name": "Instalaciones de Estructuras en Talleres",
+      "default_action": null,
+      "position": 36
+    },
+    {
+      "type_key": "Instalaciones",
+      "name": "Instalaciones de Estructuras en Int. Mina",
+      "default_action": null,
+      "position": 37
+    },
+    {
+      "type_key": "Instalaciones",
+      "name": "Instalaciones de Estructuras en Campamento",
+      "default_action": null,
+      "position": 38
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "Fabricaciones en General para Mina",
+      "default_action": "Fabricación",
+      "position": 45
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Telefonos",
+      "default_action": "Instalación",
+      "position": 46
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "Fabricación",
+      "default_action": "Fabricación",
+      "position": 46
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Instalaciones Eléctricas",
+      "default_action": "Instalación",
+      "position": 46
+    },
+    {
+      "type_key": "Convencional_Instalaciones",
+      "name": "Instalaciones de Estructuras en Talleres",
+      "default_action": "Instalación",
+      "position": 47
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "asdasdsa",
+      "default_action": "",
+      "position": 47
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Tableros Electricos",
+      "default_action": "",
+      "position": 47
+    },
+    {
+      "type_key": "Convencional_Instalaciones",
+      "name": "Instalaciones de Estructuras en Int. Mina",
+      "default_action": "Instalación",
+      "position": 48
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "asdasd",
+      "default_action": "",
+      "position": 48
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Tableros Eléctricos",
+      "default_action": "Instalación",
+      "position": 48
+    },
+    {
+      "type_key": "Convencional_Instalaciones",
+      "name": "Instalaciones de Estructuras en Campamento",
+      "default_action": "Instalación",
+      "position": 49
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "Fabricación",
+      "default_action": "",
+      "position": 49
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "Instalaciones Eléctricas",
+      "default_action": "",
+      "position": 50
+    },
+    {
+      "type_key": "Convencional_Soldadura",
+      "name": "asda",
+      "default_action": "",
+      "position": 51
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Instalaciones de Estructuras en Talleres",
+      "default_action": null,
+      "position": 52
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Instalaciones de Estructuras en Int. Mina",
+      "default_action": null,
+      "position": 53
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Instalaciones de Estructuras en Campamento",
+      "default_action": null,
+      "position": 54
+    }
+  ],
+  "acciones": [
+    {
+      "group_key": "Trackless",
+      "name": "Mantenimiento Preventivo",
+      "position": 0
+    },
+    {
+      "group_key": "Trackless",
+      "name": "Mantenimiento Correctivo",
+      "position": 1
+    },
+    {
+      "group_key": "Trackless",
+      "name": "Inspección (Liberación Eq.)",
+      "position": 2
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Mantenimiento Preventivo",
+      "position": 3
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Mantenimiento Correctivo",
+      "position": 4
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Instalación",
+      "position": 5
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Fabricación",
+      "position": 6
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Inspección (Liberación Eq.)",
+      "position": 7
+    },
+    {
+      "group_key": "Electrico",
+      "name": "Mantenimiento Correctivo",
+      "position": 9
+    },
+    {
+      "group_key": "Electrico",
+      "name": "Instalación",
+      "position": 10
+    },
+    {
+      "group_key": "Trackless",
+      "name": "Instalación",
+      "position": 11
+    },
+    {
+      "group_key": "Electrico",
+      "name": "Inspección (Liberación Eq.)",
+      "position": 12
+    }
+  ],
+  "equipos": [
+    {
+      "name": "Alimak",
+      "action_group": "Trackless",
+      "position": 0,
+      "subitems": [
+        {
+          "name": "Alimak",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Bomba de Pistón",
+      "action_group": "Trackless",
+      "position": 1,
+      "subitems": [
+        {
+          "name": "Electrobomba de Pistón (EB.10-P)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.11-P)",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.12-P)",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.13-P)",
+          "meters": "fin",
+          "position": 3
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.14-P)",
+          "meters": "fin",
+          "position": 4
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.15-P)",
+          "meters": "fin",
+          "position": 5
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.16-P)",
+          "meters": "fin",
+          "position": 6
+        }
+      ]
+    },
+    {
+      "name": "Camionetas",
+      "action_group": "Convencional",
+      "position": 2,
+      "subitems": [
+        {
+          "name": "Ambulancia (EUG-360)",
+          "meters": "kilometraje",
+          "position": 0
+        },
+        {
+          "name": "Camioneta Conejo (VCP-772)",
+          "meters": "kilometraje",
+          "position": 1
+        },
+        {
+          "name": "Camioneta GER-CORP (VDX-833)",
+          "meters": "kilometraje",
+          "position": 2
+        },
+        {
+          "name": "Camioneta Gerencia (VDN-931)",
+          "meters": "kilometraje",
+          "position": 3
+        },
+        {
+          "name": "Camioneta Gerencia (BZM-789)",
+          "meters": "kilometraje",
+          "position": 4
+        },
+        {
+          "name": "Camioneta Lechera (VEG-809)",
+          "meters": "kilometraje",
+          "position": 5
+        },
+        {
+          "name": "Camioneta Liebre 2 (VCW-854)",
+          "meters": "kilometraje",
+          "position": 6
+        },
+        {
+          "name": "Camioneta Liebre 3 (VEE-949)",
+          "meters": "kilometraje",
+          "position": 7
+        },
+        {
+          "name": "Camioneta Liebre 4 (VEH-817)",
+          "meters": "kilometraje",
+          "position": 8
+        },
+        {
+          "name": "Camioneta Zorro (VAN-835)",
+          "meters": "kilometraje",
+          "position": 9
+        },
+        {
+          "name": "Camioneta (VFF-923)",
+          "meters": "kilometraje",
+          "position": 10
+        },
+        {
+          "name": "Camioneta (ERT-673)",
+          "meters": "kilometraje",
+          "position": 11
+        }
+      ]
+    },
+    {
+      "name": "Camioncitos",
+      "action_group": "Convencional",
+      "position": 3,
+      "subitems": [
+        {
+          "name": "Camión de Azul (VCL-723)",
+          "meters": "kilometraje",
+          "position": 0
+        },
+        {
+          "name": "Camión Tortuga 1 (VAP-905)",
+          "meters": "kilometraje",
+          "position": 1
+        },
+        {
+          "name": "Camión Tortuga 2 (VDT-742)",
+          "meters": "kilometraje",
+          "position": 2
+        },
+        {
+          "name": "Camión Tortuga 3 (VDT-726)",
+          "meters": "kilometraje",
+          "position": 3
+        },
+        {
+          "name": "Camión Tortuga 4 (VEA-766)",
+          "meters": "kilometraje",
+          "position": 4
+        },
+        {
+          "name": "Camión Tortuga 5 (VEE-770)",
+          "meters": "kilometraje",
+          "position": 5
+        },
+        {
+          "name": "Camión Recuperación (VET-885)",
+          "meters": "kilometraje",
+          "position": 6
+        },
+        {
+          "name": "Camión Rojo (VBR-892)",
+          "meters": "kilometraje",
+          "position": 7
+        }
+      ]
+    },
+    {
+      "name": "Cisternas",
+      "action_group": "Convencional",
+      "position": 4,
+      "subitems": [
+        {
+          "name": "Cisterna de Agua (VDR-883)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Cargador Frontal",
+      "action_group": "Convencional",
+      "position": 5,
+      "subitems": [
+        {
+          "name": "Cargador Frontal CAT 966 (CF-01)",
+          "meters": "horometro_motor",
+          "position": 0
+        },
+        {
+          "name": "Cargador Frontal Liugong 856H",
+          "meters": "horometro_motor",
+          "position": 1
+        }
+      ]
+    },
+    {
+      "name": "Compresoras",
+      "action_group": "Convencional",
+      "position": 6,
+      "subitems": [
+        {
+          "name": "Atlas Copco COE (GA 55)",
+          "meters": "horometro_motor",
+          "position": 0
+        },
+        {
+          "name": "Atlas Copco (GA 90+) (RP 220)",
+          "meters": "horometro_motor",
+          "position": 1
+        },
+        {
+          "name": "Atlas Copco (GA 90+) (Asunción)",
+          "meters": "horometro_motor",
+          "position": 2
+        },
+        {
+          "name": "Atlas Copco (GA 110+)",
+          "meters": "horometro_motor",
+          "position": 3
+        },
+        {
+          "name": "Atlas Copco (GA 110 VSD+)",
+          "meters": "horometro_motor",
+          "position": 4
+        },
+        {
+          "name": "Atlas Copco (GA 160 VSD)",
+          "meters": "horometro_motor",
+          "position": 5
+        },
+        {
+          "name": "Atlas Copco (GA 160 VSD+)",
+          "meters": "horometro_motor",
+          "position": 6
+        },
+        {
+          "name": "Kaeser (SFC 200) N° 01",
+          "meters": "horometro_motor",
+          "position": 7
+        },
+        {
+          "name": "Kaeser (SFC 220 N°) 02",
+          "meters": "horometro_motor",
+          "position": 8
+        }
+      ]
+    },
+    {
+      "name": "Dumper",
+      "action_group": "Trackless",
+      "position": 7,
+      "subitems": [
+        {
+          "name": "Dumper N° 01",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Dumper N° 02",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Dumper N° 03",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Dumper N° 04",
+          "meters": "fin",
+          "position": 3
+        },
+        {
+          "name": "Dumper N° 05",
+          "meters": "fin",
+          "position": 4
+        },
+        {
+          "name": "Dumper N° 06",
+          "meters": "fin",
+          "position": 5
+        },
+        {
+          "name": "Dumper N° 07",
+          "meters": "fin",
+          "position": 6
+        },
+        {
+          "name": "Dumper N° 08",
+          "meters": "fin",
+          "position": 7
+        },
+        {
+          "name": "Dumper N° 10",
+          "meters": "fin",
+          "position": 8
+        }
+      ]
+    },
+    {
+      "name": "Excavadora (CAT336)",
+      "action_group": "Convencional",
+      "position": 8,
+      "subitems": [
+        {
+          "name": "Excavadora (CAT336)",
+          "meters": "horometro_motor",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Fabricaciones",
+      "action_group": "Convencional",
+      "position": 9,
+      "subitems": [
+        {
+          "name": "Fabricaciones",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Grupo Electrógeno",
+      "action_group": "Convencional",
+      "position": 10,
+      "subitems": [
+        {
+          "name": "(GE-01) Asunción QAS 550",
+          "meters": "horometro_motor",
+          "position": 0
+        },
+        {
+          "name": "(GE-02) Asunción QAS 550",
+          "meters": "horometro_motor",
+          "position": 1
+        },
+        {
+          "name": "(GE-03) Asunción QAS 550",
+          "meters": "horometro_motor",
+          "position": 2
+        },
+        {
+          "name": "(GE-04) Asunción MV 560",
+          "meters": "horometro_motor",
+          "position": 3
+        },
+        {
+          "name": "(GE-05) Asunción QAS 500",
+          "meters": "horometro_motor",
+          "position": 4
+        },
+        {
+          "name": "(GE-06) Asunción QAS 85",
+          "meters": "horometro_motor",
+          "position": 5
+        },
+        {
+          "name": "(GE-07) Nivel 0 MV 560",
+          "meters": "horometro_motor",
+          "position": 6
+        },
+        {
+          "name": "(GE-08) Rampa 220 MV 560",
+          "meters": "horometro_motor",
+          "position": 7
+        }
+      ]
+    },
+    {
+      "name": "Jumbos",
+      "action_group": "Trackless",
+      "position": 11,
+      "subitems": [
+        {
+          "name": "Jumbo Komatsu ZJ21 (JM-01)",
+          "meters": "horometro_jumbo",
+          "position": 0
+        },
+        {
+          "name": "Jumbo Muki N° 01 (JM-02)",
+          "meters": "horometro_jumbo",
+          "position": 1
+        },
+        {
+          "name": "Jumbo Muki N° 02 (JM-03)",
+          "meters": "horometro_jumbo",
+          "position": 2
+        }
+      ]
+    },
+    {
+      "name": "Locomotoras",
+      "action_group": "Trackless",
+      "position": 12,
+      "subitems": [
+        {
+          "name": "Locomotora N° 01 (LOC-01)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Locomotora N° 02 (LOC-02)",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Locomotora N° 03 (LOC-03)",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Locomotora N° 04 (LOC-04)",
+          "meters": "fin",
+          "position": 3
+        },
+        {
+          "name": "Locomotora N° 05 (LOC-05)",
+          "meters": "fin",
+          "position": 4
+        },
+        {
+          "name": "Locomotora N° 06 (LOC-06)",
+          "meters": "fin",
+          "position": 5
+        },
+        {
+          "name": "Locomotora N° 07 (LOC-07)",
+          "meters": "fin",
+          "position": 6
+        },
+        {
+          "name": "Locomotora N° 08 (LOC-08)",
+          "meters": "fin",
+          "position": 7
+        },
+        {
+          "name": "Locomotora N° 09 (LOC-09)",
+          "meters": "fin",
+          "position": 8
+        },
+        {
+          "name": "Locomotora N° 10 (LOC-10)",
+          "meters": "fin",
+          "position": 9
+        }
+      ]
+    },
+    {
+      "name": "Scooptrams",
+      "action_group": "Trackless",
+      "position": 13,
+      "subitems": [
+        {
+          "name": "Scoop Komatsu WX07 (WX-07)",
+          "meters": "horometro_motor",
+          "position": 0
+        },
+        {
+          "name": "Scoop Epiroc ST2G (ST2G)",
+          "meters": "horometro_motor",
+          "position": 1
+        },
+        {
+          "name": "Scoop XCMG 1.5 YD (SD-03)",
+          "meters": "horometro_motor",
+          "position": 2
+        },
+        {
+          "name": "Scoop XCMG 2.6 YD (SD-04)",
+          "meters": "horometro_motor",
+          "position": 3
+        }
+      ]
+    },
+    {
+      "name": "Retroexcavadora (REX-01)",
+      "action_group": "Convencional",
+      "position": 14,
+      "subitems": [
+        {
+          "name": "Retroexcavadora (REX-01)",
+          "meters": "horometro_motor",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Palas Neumáticas",
+      "action_group": "Trackless",
+      "position": 15,
+      "subitems": [
+        {
+          "name": "Pala N° 01 (PALA-01)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Pala N° 02 (PALA-02)",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Pala N° 03 (PALA-03)",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Pala N° 04 (PALA-04)",
+          "meters": "fin",
+          "position": 3
+        },
+        {
+          "name": "Pala N° 05 (PALA-05)",
+          "meters": "fin",
+          "position": 4
+        },
+        {
+          "name": "Pala N° 06 (PALA-06)",
+          "meters": "fin",
+          "position": 5
+        },
+        {
+          "name": "Pala N° 07 (PALA-07)",
+          "meters": "fin",
+          "position": 6
+        },
+        {
+          "name": "Pala N° 08 (PALA-08)",
+          "meters": "fin",
+          "position": 7
+        },
+        {
+          "name": "Pala N° 09 (PALA-09)",
+          "meters": "fin",
+          "position": 8
+        },
+        {
+          "name": "Pala N° 10 (PALA-10)",
+          "meters": "fin",
+          "position": 9
+        }
+      ]
+    },
+    {
+      "name": "Eq. Diamantina",
+      "action_group": "Trackless",
+      "position": 16,
+      "subitems": [
+        {
+          "name": "Diamantina (PACKSAC)",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Plataforma",
+      "action_group": "Trackless",
+      "position": 17,
+      "subitems": [
+        {
+          "name": "Plataforma",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Tableros",
+      "action_group": "Convencional",
+      "position": 18,
+      "subitems": [
+        {
+          "name": "Tableros",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Tendido de Cable",
+      "action_group": "Convencional",
+      "position": 19,
+      "subitems": [
+        {
+          "name": "Tendido de Cable",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
+      "name": "Ventilador Eléctrico",
+      "action_group": "Trackless",
+      "position": 20,
+      "subitems": [
+        {
+          "name": "Ventilador Centrífugo (V.01-P)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Ventilador Axial (V.02-P)",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Ventilador Centrífugo (V.03-P)",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Ventilador Axial (V.04-P)",
+          "meters": "fin",
+          "position": 3
+        },
+        {
+          "name": "Ventilador Centrífugo (V.05-P)",
+          "meters": "fin",
+          "position": 4
+        },
+        {
+          "name": "Ventilador Axial (V.06-P)",
+          "meters": "fin",
+          "position": 5
+        },
+        {
+          "name": "Ventilador Centrífugo (V.07-P)",
+          "meters": "fin",
+          "position": 6
+        },
+        {
+          "name": "Ventilador Axial (V.08-P)",
+          "meters": "fin",
+          "position": 7
+        },
+        {
+          "name": "Ventilador Centrífugo (V.09-P)",
+          "meters": "fin",
+          "position": 8
+        },
+        {
+          "name": "Ventilador Axial (V.10-P)",
+          "meters": "fin",
+          "position": 9
+        },
+        {
+          "name": "Ventilador Centrífugo (V.11-P)",
+          "meters": "fin",
+          "position": 10
+        },
+        {
+          "name": "Ventilador Axial (V.12-P)",
+          "meters": "fin",
+          "position": 11
+        },
+        {
+          "name": "Ventilador Centrífugo (V.13-P)",
+          "meters": "fin",
+          "position": 12
+        },
+        {
+          "name": "Ventilador Axial (V.14-P)",
+          "meters": "fin",
+          "position": 13
+        },
+        {
+          "name": "Ventilador Centrífugo (V.15-P)",
+          "meters": "fin",
+          "position": 14
+        },
+        {
+          "name": "Ventilador Axial (V.16-P)",
+          "meters": "fin",
+          "position": 15
+        },
+        {
+          "name": "Ventilador Centrífugo (V.17-P)",
+          "meters": "fin",
+          "position": 16
+        },
+        {
+          "name": "Ventilador Axial (V.18-P)",
+          "meters": "fin",
+          "position": 17
+        },
+        {
+          "name": "Ventilador Centrífugo (V.19-P)",
+          "meters": "fin",
+          "position": 18
+        },
+        {
+          "name": "Ventilador Axial (V.20-P)",
+          "meters": "fin",
+          "position": 19
+        },
+        {
+          "name": "Ventilador Centrífugo (V.21-P)",
+          "meters": "fin",
+          "position": 20
+        },
+        {
+          "name": "Ventilador Axial (V.22-P)",
+          "meters": "fin",
+          "position": 21
+        },
+        {
+          "name": "Ventilador Centrífugo (V.23-P)",
+          "meters": "fin",
+          "position": 22
+        },
+        {
+          "name": "Ventilador Axial (V.24-P)",
+          "meters": "fin",
+          "position": 23
+        },
+        {
+          "name": "Ventilador Centrífugo (V.25-P)",
+          "meters": "fin",
+          "position": 24
+        },
+        {
+          "name": "Ventilador Axial (V.26-P)",
+          "meters": "fin",
+          "position": 25
+        },
+        {
+          "name": "Ventilador Centrífugo (V.27-P)",
+          "meters": "fin",
+          "position": 26
+        },
+        {
+          "name": "Ventilador Axial (V.28-P)",
+          "meters": "fin",
+          "position": 27
+        },
+        {
+          "name": "Ventilador Centrífugo (V.29-P)",
+          "meters": "fin",
+          "position": 28
+        },
+        {
+          "name": "Ventilador Axial (V.30-P)",
+          "meters": "fin",
+          "position": 29
+        },
+        {
+          "name": "Ventilador Centrífugo (V.31-P)",
+          "meters": "fin",
+          "position": 30
+        },
+        {
+          "name": "Ventilador Axial (V.32-P)",
+          "meters": "fin",
+          "position": 31
+        },
+        {
+          "name": "Ventilador Centrífugo (V.33-P)",
+          "meters": "fin",
+          "position": 32
+        },
+        {
+          "name": "Ventilador Axial (V.34-P)",
+          "meters": "fin",
+          "position": 33
+        }
+      ]
+    },
+    {
+      "name": "Volquetes 4 Tn",
+      "action_group": "Convencional",
+      "position": 21,
+      "subitems": [
+        {
+          "name": "Volquete 1 (VCI-946)",
+          "meters": "kilometraje",
+          "position": 0
+        },
+        {
+          "name": "Volquete 2 (VCJ-739)",
+          "meters": "kilometraje",
+          "position": 1
+        },
+        {
+          "name": "Volquete 3 (VDB-833)",
+          "meters": "kilometraje",
+          "position": 2
+        },
+        {
+          "name": "Volquete 4 (VDJ-905)",
+          "meters": "kilometraje",
+          "position": 3
+        },
+        {
+          "name": "Volquete 5 (VDM-742)",
+          "meters": "kilometraje",
+          "position": 4
+        }
+      ]
+    },
+    {
+      "name": "Volquetes - FMX",
+      "action_group": "Convencional",
+      "position": 22,
+      "subitems": [
+        {
+          "name": "Volquete FMX 1 (BNK-709)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 0
+        },
+        {
+          "name": "Volquete FMX 2 (BDE-738)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 1
+        },
+        {
+          "name": "Volquete FMX 3 (VDJ-869)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 2
+        },
+        {
+          "name": "Volquete FMX 4 (VDJ-906)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 3
+        },
+        {
+          "name": "Volquete FMX 5 (VDF-703)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 4
+        },
+        {
+          "name": "Volquete FMX 6 (VDF-791)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 5
+        },
+        {
+          "name": "Volquete FMX 7 (CJB-903)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 6
+        },
+        {
+          "name": "Volquete FMX 8 (CJB-930)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 7
+        },
+        {
+          "name": "Volquete Shacman (CAR-839)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 8
+        },
+        {
+          "name": "Volquete Shacman (CAS-772)",
+          "meters": "horometro_volquetes,kilometraje",
+          "position": 9
+        }
+      ]
+    },
+    {
+      "name": "Winches Eléctricos",
+      "action_group": "Trackless",
+      "position": 23,
+      "subitems": [
+        {
+          "name": "Winche Eléctrico N°01 (WE.01-P)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Winche Eléctrico N°02 (WE.02-P)",
+          "meters": "fin",
+          "position": 1
+        },
+        {
+          "name": "Winche Eléctrico N°03 (WE.03-P)",
+          "meters": "fin",
+          "position": 2
+        },
+        {
+          "name": "Winche Eléctrico N°04 (WE.04-P)",
+          "meters": "fin",
+          "position": 3
+        }
+      ]
+    },
+    {
+      "name": "Instalaciones Eléctricas",
+      "action_group": "Convencional",
+      "position": 24,
+      "subitems": [
+        {
+          "name": "Inst. Elec",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    }
+  ]
+}
