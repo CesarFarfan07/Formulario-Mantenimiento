@@ -518,6 +518,39 @@ async function deleteItem(entity, id) {
     } catch (err) { alert('Error: ' + err.message); }
 }
 
+function showToast(msg, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const id = 'toast_' + Date.now();
+    const bg = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-warning';
+    container.insertAdjacentHTML('beforeend',
+        `<div id="${id}" class="toast align-items-center text-white ${bg} border-0" role="alert">
+            <div class="d-flex"><div class="toast-body">${msg}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div></div>`
+    );
+    const el = document.getElementById(id);
+    if (el) { const t = new bootstrap.Toast(el, { delay: 3000 }); t.show(); }
+}
+
+async function saveAllAdmin() {
+    const btn = document.querySelector('[onclick="saveAllAdmin()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...'; }
+    try {
+        const entities = ['equipos', 'colaboradores', 'macroprocesos', 'tipos_trabajo', 'acciones', 'niveles', 'turnos'];
+        for (const e of entities) {
+            const r = await fetchWithTimeout(`/api/admin/${e}`);
+            allData[e] = await r.json();
+        }
+        renderIndependentPanels();
+        for (const g of Object.keys(GROUPS)) renderUnifiedView(g);
+        showToast('✅ Todos los datos guardados correctamente');
+    } catch {
+        showToast('❌ Error al guardar los datos', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-check2-circle"></i> <span class="d-none d-sm-inline">Guardar todo</span>'; }
+    }
+}
+
 // Tab switching on page load
 document.addEventListener('DOMContentLoaded', () => {
     // Default to independent tab

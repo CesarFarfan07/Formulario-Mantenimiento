@@ -3,6 +3,7 @@ let _searchCursor = null;
 let _searchCursorDate = null;
 let _searchHasMore = false;
 let _searchParams = {};
+let _pendingDeleteIds = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadOptions();
@@ -1118,9 +1119,15 @@ function renderReportsTable(reports, container) {
         return;
     }
 
-    let html = `<div class="table-responsive"><table class="table table-sm table-hover">
+    let html = `<div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <button class="btn btn-sm btn-outline-danger d-none" id="batchDeleteBtn" onclick="promptBatchDelete()"><i class="bi bi-trash"></i> Eliminar seleccionados <span id="batchCount">0</span></button>
+        </div>
+        <label class="text-muted small"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll()"> Seleccionar todo</label>
+    </div>`;
+    html += `<div class="table-responsive"><table class="table table-sm table-hover">
         <thead><tr class="table-dark">
-            <th>#</th><th>📅 Fecha</th><th>🌓 Turno</th><th>👥 Grupo</th>
+            <th style="width:30px"></th><th>#</th><th>📅 Fecha</th><th>🌓 Turno</th><th>👥 Grupo</th>
             <th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
         </tr></thead><tbody>`;
 
@@ -1132,13 +1139,17 @@ function renderReportsTable(reports, container) {
         const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
 
         html += `<tr>
+            <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
             <td>${rp.id}</td>
             <td>${formatDate(rp.date)}</td>
             <td>${rp.shift}</td>
             <td>${rp.group_name}</td>
             <td title="${colabs.join(', ')}">${colabText}</td>
             <td>${(rp.entries || []).length}</td>
-            <td><button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button></td>
+            <td class="text-nowrap">
+                <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
+            </td>
         </tr>`;
     }
     html += '</tbody></table></div>';
@@ -1161,13 +1172,17 @@ function appendReportsTable(newReports, container) {
         const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
         const tr = document.createElement('tr');
         tr.innerHTML = `
+            <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
             <td>${rp.id}</td>
             <td>📅 ${formatDate(rp.date)}</td>
             <td>🌓 ${rp.shift}</td>
             <td>👥 ${rp.group_name}</td>
             <td title="${colabs.join(', ')}">${colabText}</td>
             <td>🔧 ${(rp.entries || []).length}</td>
-            <td><button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i> Ver</button></td>`;
+            <td class="text-nowrap">
+                <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
+            </td>`;
         tbody.appendChild(tr);
     }
     // Update "Ver más" button
@@ -1412,4 +1427,79 @@ async function generateDailyReport() {
     }
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Generar Reporte';
+}
+
+// ─── DELETE REPORTS ────────────────────────────────────────────────────
+
+function deleteReport(id) {
+    _pendingDeleteIds = [id];
+    const modal = document.getElementById('deletePasswordModal');
+    document.getElementById('deletePasswordInput').value = '';
+    document.getElementById('deletePasswordError').classList.add('d-none');
+    if (typeof bootstrap !== 'undefined' && modal) new bootstrap.Modal(modal).show();
+}
+
+function promptBatchDelete() {
+    const checks = document.querySelectorAll('.report-check:checked');
+    _pendingDeleteIds = Array.from(checks).map(cb => parseInt(cb.value));
+    if (!_pendingDeleteIds.length) return;
+    const modal = document.getElementById('deletePasswordModal');
+    document.getElementById('deletePasswordInput').value = '';
+    document.getElementById('deletePasswordError').classList.add('d-none');
+    if (typeof bootstrap !== 'undefined' && modal) new bootstrap.Modal(modal).show();
+}
+
+async function confirmDeleteWithPassword() {
+    const pw = document.getElementById('deletePasswordInput').value;
+    if (!pw) return;
+    const btn = document.querySelector('#deletePasswordModal .btn-danger');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
+    try {
+        const r = await fetch('/api/reports/delete-verify', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw }),
+        });
+        if (!r.ok) {
+            document.getElementById('deletePasswordError').classList.remove('d-none');
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
+            return;
+        }
+        // Password correct — execute delete
+        if (_pendingDeleteIds.length === 1) {
+            const dr = await fetch(`/api/reports/${_pendingDeleteIds[0]}?password=${encodeURIComponent(pw)}`, { method: 'DELETE' });
+            if (!dr.ok) { const e = await dr.text(); alert('Error: ' + e); return; }
+        } else {
+            const dr = await fetch('/api/reports/batch-delete', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: _pendingDeleteIds, password: pw }),
+            });
+            if (!dr.ok) { const e = await dr.text(); alert('Error: ' + e); return; }
+        }
+        bootstrap.Modal.getInstance(document.getElementById('deletePasswordModal'))?.hide();
+        showModal('Eliminado', `<div class="alert alert-success">${_pendingDeleteIds.length} reporte(s) eliminado(s) correctamente.</div>`);
+        _pendingDeleteIds = [];
+        loadRecentReports(20);
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-trash"></i> Eliminar';
+    }
+}
+
+function toggleSelectAll() {
+    const checked = document.getElementById('selectAllCheck').checked;
+    document.querySelectorAll('.report-check').forEach(cb => cb.checked = checked);
+    updateBatchDeleteBtn();
+}
+
+function updateBatchDeleteBtn() {
+    const count = document.querySelectorAll('.report-check:checked').length;
+    const btn = document.getElementById('batchDeleteBtn');
+    if (!btn) return;
+    if (count > 0) {
+        btn.classList.remove('d-none');
+        btn.querySelector('#batchCount').textContent = `(${count})`;
+    } else {
+        btn.classList.add('d-none');
+    }
 }

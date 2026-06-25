@@ -248,6 +248,11 @@
       "group_name": "Trackless",
       "name": "Martin Sillocca",
       "position": 15
+    },
+    {
+      "group_name": "Convencional",
+      "name": "Yosh Salas",
+      "position": 37
     }
   ],
   "macroprocesos": [
@@ -273,8 +278,18 @@
     },
     {
       "group_key": "Convencional",
+      "name": "Fabricaciones_Soldadura",
+      "position": 4
+    },
+    {
+      "group_key": "Convencional",
       "name": "Soldadura y Fabricación",
       "position": 4
+    },
+    {
+      "group_key": "Convencional",
+      "name": "Instalaciones",
+      "position": 5
     },
     {
       "group_key": "Convencional",
@@ -298,6 +313,12 @@
       "name": "Auxilio Mecánico",
       "default_action": "Mantenimiento Correctivo",
       "position": 0
+    },
+    {
+      "type_key": "Trackless_Mecánico",
+      "name": "Bombas de Pistones",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 1
     },
     {
       "type_key": "Trackless_Mecánico",
@@ -344,13 +365,13 @@
     {
       "type_key": "Trackless_Mecánico",
       "name": "Neumaticos",
-      "default_action": null,
+      "default_action": "",
       "position": 8
     },
     {
       "type_key": "Trackless_Mecánico",
       "name": "Mantenimiento de Perforadora HC50 de Jumbo",
-      "default_action": "",
+      "default_action": "Mantenimiento Preventivo",
       "position": 9
     },
     {
@@ -374,7 +395,7 @@
     {
       "type_key": "Trackless_Mecánico",
       "name": "Sistemas Hidraulicos",
-      "default_action": null,
+      "default_action": "Mantenimiento Correctivo",
       "position": 13
     },
     {
@@ -391,9 +412,21 @@
     },
     {
       "type_key": "Trackless_Eléctrico",
+      "name": "Instalaciones Eléctricas, Iluminacion y Alarmas",
+      "default_action": "Instalación",
+      "position": 16
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
       "name": "Instalaciones Eléctricas, Iluminacion y Alarmas - Trackless",
       "default_action": "Instalación",
       "position": 16
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
+      "name": "Inspecciones Generales y Seguimiento",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 17
     },
     {
       "type_key": "Trackless_Eléctrico",
@@ -403,15 +436,33 @@
     },
     {
       "type_key": "Trackless_Eléctrico",
+      "name": "Mantenimiento Correctivo de Luces",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 18
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
       "name": "Mantenimiento Correctivo de Luces - Trackless",
       "default_action": "Mantenimiento Correctivo",
       "position": 18
     },
     {
       "type_key": "Convencional_Mecánico",
+      "name": "Inspección y Seguimiento de equipos",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 19
+    },
+    {
+      "type_key": "Convencional_Mecánico",
       "name": "Inspección y Seguimiento de equipo - General",
       "default_action": "Inspección (Liberación Eq.)",
       "position": 19
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Correcciones Metalmecánica",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 21
     },
     {
       "type_key": "Convencional_Mecánico",
@@ -444,33 +495,21 @@
       "position": 25
     },
     {
-      "type_key": "Electrico_Eléctrico",
-      "name": "Instalaciones Eléctricas",
-      "default_action": "Instalación",
-      "position": 26
-    },
-    {
-      "type_key": "Electrico_Eléctrico",
-      "name": "Mantto. Eléctrico",
-      "default_action": "",
+      "type_key": "Convencional_Eléctrico",
+      "name": "Mantenimiento Eléctrico",
+      "default_action": "Mantenimiento Preventivo",
       "position": 27
     },
     {
-      "type_key": "Electrico_Eléctrico",
-      "name": "Rebobinado de Motor",
-      "default_action": "Mantenimiento Correctivo",
-      "position": 28
-    },
-    {
-      "type_key": "Electrico_Eléctrico",
-      "name": "Inspección y Seguimiento",
-      "default_action": "Inspección (Liberación Eq.)",
+      "type_key": "Convencional_Eléctrico",
+      "name": "Mantenimiento Preventivo",
+      "default_action": "Mantenimiento Preventivo",
       "position": 29
     },
     {
-      "type_key": "Fabricacion_Soldadura",
-      "name": "Fabricaciones en General para Mina",
-      "default_action": null,
+      "type_key": "Convencional_Eléctrico",
+      "name": "Mantenimiento Correctivo Eléctrico",
+      "default_action": "Mantenimiento Correctivo",
       "position": 30
     },
     {
@@ -487,9 +526,21 @@
     },
     {
       "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Mina",
+      "default_action": null,
+      "position": 33
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
       "name": "Fabricaciones de Alcayatas",
       "default_action": null,
       "position": 33
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Taller",
+      "default_action": null,
+      "position": 34
     },
     {
       "type_key": "Convencional_Mecánico",
@@ -498,34 +549,106 @@
       "position": 34
     },
     {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricaciones en General",
+      "default_action": null,
+      "position": 35
+    },
+    {
       "type_key": "Convencional_Mecánico",
       "name": "Mantenimiento Correctivo",
       "default_action": "Mantenimiento Correctivo",
       "position": 35
     },
     {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Fabricación de Alcayatas",
+      "default_action": null,
+      "position": 36
+    },
+    {
+      "type_key": "Fabricacion_Soldadura",
+      "name": "Correcciones de Fabricación - General",
+      "default_action": null,
+      "position": 37
+    },
+    {
+      "type_key": "Convencional_Mecánico",
+      "name": "Mantenimiento Preventivos",
+      "default_action": "Mantenimiento Preventivo",
+      "position": 38
+    },
+    {
       "type_key": "Instalaciones",
       "name": "Instalaciones de Estructuras en Talleres",
       "default_action": null,
-      "position": 36
+      "position": 39
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Instalaciones Eléctricas",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 39
     },
     {
       "type_key": "Instalaciones",
       "name": "Instalaciones de Estructuras en Int. Mina",
       "default_action": null,
-      "position": 37
+      "position": 40
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Mantto. Eléctrico",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 40
     },
     {
       "type_key": "Instalaciones",
       "name": "Instalaciones de Estructuras en Campamento",
       "default_action": null,
-      "position": 38
+      "position": 41
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Rebobinado de Motor",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 41
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Tendido de cable",
+      "default_action": null,
+      "position": 42
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Teléfonos",
+      "default_action": null,
+      "position": 43
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Inspección y Seguimiento",
+      "default_action": "Inspección (Liberación Eq.)",
+      "position": 44
+    },
+    {
+      "type_key": "Convencional_Instalaciones",
+      "name": "Instalaciones de Estructuras en Talleres",
+      "default_action": "Instalación",
+      "position": 45
     },
     {
       "type_key": "Convencional_Soldadura",
       "name": "Fabricaciones en General para Mina",
       "default_action": "Fabricación",
       "position": 45
+    },
+    {
+      "type_key": "Convencional_Instalaciones",
+      "name": "Instalaciones de Estructuras en Int. Mina",
+      "default_action": "Instalación",
+      "position": 46
     },
     {
       "type_key": "Electrico_Instalaciones",
@@ -540,14 +663,8 @@
       "position": 46
     },
     {
-      "type_key": "Electrico_Instalaciones",
-      "name": "Instalaciones Eléctricas",
-      "default_action": "Instalación",
-      "position": 46
-    },
-    {
       "type_key": "Convencional_Instalaciones",
-      "name": "Instalaciones de Estructuras en Talleres",
+      "name": "Instalaciones de Estructuras en Campamento",
       "default_action": "Instalación",
       "position": 47
     },
@@ -564,9 +681,15 @@
       "position": 47
     },
     {
-      "type_key": "Convencional_Instalaciones",
-      "name": "Instalaciones de Estructuras en Int. Mina",
-      "default_action": "Instalación",
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Mina",
+      "default_action": "Fabricación",
+      "position": 48
+    },
+    {
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Taller",
+      "default_action": "Fabricación",
       "position": 48
     },
     {
@@ -582,9 +705,15 @@
       "position": 48
     },
     {
-      "type_key": "Convencional_Instalaciones",
-      "name": "Instalaciones de Estructuras en Campamento",
-      "default_action": "Instalación",
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Campamento",
+      "default_action": "Fabricación",
+      "position": 49
+    },
+    {
+      "type_key": "Electrico_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Mina",
+      "default_action": null,
       "position": 49
     },
     {
@@ -594,16 +723,52 @@
       "position": 49
     },
     {
+      "type_key": "Electrico_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General para Taller",
+      "default_action": null,
+      "position": 50
+    },
+    {
+      "type_key": "Electrico_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General",
+      "default_action": null,
+      "position": 50
+    },
+    {
       "type_key": "Convencional_Soldadura",
       "name": "Instalaciones Eléctricas",
       "default_action": "",
       "position": 50
     },
     {
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Fabricación de Alcayatas",
+      "default_action": "Fabricación",
+      "position": 51
+    },
+    {
+      "type_key": "Electrico_Fabricacion_Soldadura",
+      "name": "Fabricación de Alcayatas",
+      "default_action": null,
+      "position": 51
+    },
+    {
       "type_key": "Convencional_Soldadura",
       "name": "asda",
       "default_action": "",
       "position": 51
+    },
+    {
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Correcciones de Fabricación",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 52
+    },
+    {
+      "type_key": "Electrico_Fabricacion_Soldadura",
+      "name": "Correcciones de Fabricación - General",
+      "default_action": null,
+      "position": 52
     },
     {
       "type_key": "Electrico_Instalaciones",
@@ -622,6 +787,54 @@
       "name": "Instalaciones de Estructuras en Campamento",
       "default_action": null,
       "position": 54
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Instalaciones Eléctricas",
+      "default_action": "Instalación",
+      "position": 57
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Tendido de cable",
+      "default_action": "Instalación",
+      "position": 58
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Tableros",
+      "default_action": "Instalación",
+      "position": 59
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Tableros",
+      "default_action": "",
+      "position": 60
+    },
+    {
+      "type_key": "Electrico_Instalaciones",
+      "name": "Teléfonos",
+      "default_action": "Instalación",
+      "position": 63
+    },
+    {
+      "type_key": "Convencional_Fabricacion_Soldadura",
+      "name": "Fabricaciones en General",
+      "default_action": null,
+      "position": 64
+    },
+    {
+      "type_key": "Trackless_Eléctrico",
+      "name": "Escaneo de Equipos y Borrado de Códigos",
+      "default_action": "Mantenimiento Correctivo",
+      "position": 64
+    },
+    {
+      "type_key": "Electrico_Eléctrico",
+      "name": "Telefonos",
+      "default_action": "Instalación",
+      "position": 65
     }
   ],
   "acciones": [
@@ -642,28 +855,28 @@
     },
     {
       "group_key": "Convencional",
-      "name": "Mantenimiento Preventivo",
-      "position": 3
-    },
-    {
-      "group_key": "Convencional",
-      "name": "Mantenimiento Correctivo",
+      "name": "Instalación",
       "position": 4
     },
     {
       "group_key": "Convencional",
-      "name": "Instalación",
+      "name": "Inspección (Liberación Eq.)",
       "position": 5
     },
     {
       "group_key": "Convencional",
-      "name": "Fabricación",
-      "position": 6
+      "name": "Mantenimiento Correctivo",
+      "position": 7
     },
     {
       "group_key": "Convencional",
-      "name": "Inspección (Liberación Eq.)",
+      "name": "Fabricación",
       "position": 7
+    },
+    {
+      "group_key": "Trackless",
+      "name": "Instalación",
+      "position": 8
     },
     {
       "group_key": "Electrico",
@@ -676,14 +889,14 @@
       "position": 10
     },
     {
-      "group_key": "Trackless",
-      "name": "Instalación",
+      "group_key": "Electrico",
+      "name": "Inspección (Liberación Eq.)",
       "position": 11
     },
     {
-      "group_key": "Electrico",
-      "name": "Inspección (Liberación Eq.)",
-      "position": 12
+      "group_key": "Convencional",
+      "name": "Mantenimiento Preventivo",
+      "position": 11
     }
   ],
   "equipos": [
@@ -693,7 +906,7 @@
       "position": 0,
       "subitems": [
         {
-          "name": "Alimak",
+          "name": "ALIMAK",
           "meters": "fin",
           "position": 0
         }
@@ -701,7 +914,7 @@
     },
     {
       "name": "Bomba de Pistón",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 1,
       "subitems": [
         {
@@ -743,7 +956,7 @@
     },
     {
       "name": "Camionetas",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 2,
       "subitems": [
         {
@@ -797,12 +1010,12 @@
           "position": 9
         },
         {
-          "name": "Camioneta (VFF-923)",
+          "name": "Camioneta Liebre 5 (VFF-923)",
           "meters": "kilometraje",
           "position": 10
         },
         {
-          "name": "Camioneta (ERT-673)",
+          "name": "Camioneta Gerencia(VFJ-730)",
           "meters": "kilometraje",
           "position": 11
         }
@@ -810,7 +1023,7 @@
     },
     {
       "name": "Camioncitos",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 3,
       "subitems": [
         {
@@ -857,7 +1070,7 @@
     },
     {
       "name": "Cisternas",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 4,
       "subitems": [
         {
@@ -869,7 +1082,7 @@
     },
     {
       "name": "Cargador Frontal",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 5,
       "subitems": [
         {
@@ -886,7 +1099,7 @@
     },
     {
       "name": "Compresoras",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 6,
       "subitems": [
         {
@@ -938,7 +1151,7 @@
     },
     {
       "name": "Dumper",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 7,
       "subitems": [
         {
@@ -990,7 +1203,7 @@
     },
     {
       "name": "Excavadora (CAT336)",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 8,
       "subitems": [
         {
@@ -1014,7 +1227,7 @@
     },
     {
       "name": "Grupo Electrógeno",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 10,
       "subitems": [
         {
@@ -1056,6 +1269,11 @@
           "name": "(GE-08) Rampa 220 MV 560",
           "meters": "horometro_motor",
           "position": 7
+        },
+        {
+          "name": "(GE-09) Ptar Perkins",
+          "meters": "horometro_motor",
+          "position": 8
         }
       ]
     },
@@ -1083,7 +1301,7 @@
     },
     {
       "name": "Locomotoras",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 12,
       "subitems": [
         {
@@ -1167,7 +1385,7 @@
     },
     {
       "name": "Retroexcavadora (REX-01)",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 14,
       "subitems": [
         {
@@ -1179,7 +1397,7 @@
     },
     {
       "name": "Palas Neumáticas",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 15,
       "subitems": [
         {
@@ -1248,7 +1466,7 @@
     },
     {
       "name": "Plataforma",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 17,
       "subitems": [
         {
@@ -1461,7 +1679,7 @@
     },
     {
       "name": "Volquetes 4 Tn",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 21,
       "subitems": [
         {
@@ -1493,7 +1711,7 @@
     },
     {
       "name": "Volquetes - FMX",
-      "action_group": "Convencional",
+      "action_group": "Trackless",
       "position": 22,
       "subitems": [
         {
@@ -1550,7 +1768,7 @@
     },
     {
       "name": "Winches Eléctricos",
-      "action_group": "Trackless",
+      "action_group": "Convencional",
       "position": 23,
       "subitems": [
         {

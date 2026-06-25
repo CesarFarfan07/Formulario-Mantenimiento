@@ -23,52 +23,40 @@ from .models import EquipmentCategory, EquipmentSubitem, Collaborator, Macroproc
 from .schemas import (
     ReportCreate, ReportResponse, WorkerResponse, JobImageResponse
 )
-from .config import settings
+from .config import settings, BASE_DIR
 
 Base.metadata.create_all(bind=engine)
 
-# ─── Seed config data on first run ────────────────────────────────────────────
-
-def seed_config():
+# ─── Seed config from hardcoded data (only if tables empty) ──────────
+def _seed_hardcoded():
     db = SessionLocal()
     try:
         if db.query(Turno).count() > 0:
             return
-
-        turnos = ["Día", "Noche"]
-        for i, t in enumerate(turnos):
+        for i, t in enumerate(["Día", "Noche"]):
             db.add(Turno(name=t, position=i))
-
-        niveles = ["Nivel 05","Nivel 04","Nivel 03","Nivel 02","Nivel 01","Nivel 0","Nivel -01","Nivel -02","Nivel -03","Nivel -04","Nivel -05","Campamento","PTAR"]
-        for i, n in enumerate(niveles):
+        for i, n in enumerate(["Nivel 05","Nivel 04","Nivel 03","Nivel 02","Nivel 01","Nivel 0","Nivel -01","Nivel -02","Nivel -03","Nivel -04","Nivel -05","Campamento","PTAR"]):
             db.add(Nivel(name=n, position=i))
-
-        macroprocesos = [
+        for i, (gk, n) in enumerate([
             ("Trackless", "Mantenimiento Mecánico"), ("Trackless", "Mantenimiento Eléctrico"),
             ("Convencional", "Mantenimiento Mecánico"), ("Convencional", "Mantenimiento Eléctrico"), ("Convencional", "Fabricaciones"), ("Convencional", "Instalaciones"),
             ("Electrico", "Mantenimiento Mecánico"), ("Electrico", "Mantenimiento Eléctrico"), ("Electrico", "Fabricaciones"), ("Electrico", "Instalaciones"),
-        ]
-        for i, (gk, n) in enumerate(macroprocesos):
+        ]):
             db.add(Macroprocess(group_key=gk, name=n, position=i))
-
-        tipos_trabajo = [
+        for i, (tk, n) in enumerate([
             ("Trackless_Mecánico", "Auxilio Mecánico"), ("Trackless_Mecánico", "Bombas y Pistones"), ("Trackless_Mecánico", "Inspección y Correctivos Generales"), ("Trackless_Mecánico", "Inspección y Seguimiento en Labor"), ("Trackless_Mecánico", "Mantenimiento Preventivo PM 1"), ("Trackless_Mecánico", "Mantenimiento Preventivo PM 2"), ("Trackless_Mecánico", "Mantenimiento Preventivo PM 3"), ("Trackless_Mecánico", "Mantenimiento Preventivo PM 4"), ("Trackless_Mecánico", "Neumaticos"), ("Trackless_Mecánico", "Mantenimiento de Perforadora HC50 de Jumbo"), ("Trackless_Mecánico", "Sistemas de Dirección"), ("Trackless_Mecánico", "Sistema de Embrague"), ("Trackless_Mecánico", "Sistema de Frenos"), ("Trackless_Mecánico", "Sistemas Hidraulicos"), ("Trackless_Mecánico", "Sistemas de Suspensión"), ("Trackless_Mecánico", "Trabajos de Metalmecanica"),
             ("Trackless_Eléctrico", "Instalaciones Eléctricas, Iluminacion y Alarmas - Trackless"), ("Trackless_Eléctrico", "Inspecciones Generales y Seguimiento - Trackless"), ("Trackless_Eléctrico", "Mantenimiento Correctivo de Luces - Trackless"),
             ("Convencional_Mecánico", "Inspección y Seguimiento de equipo - General"), ("Convencional_Mecánico", "Correctivos Metalmecánica - Trackless"), ("Convencional_Mecánico", "Correcciones Metalmecánica - Convencional"), ("Convencional_Mecánico", "Mantenimiento Preventivo PM 1"), ("Convencional_Mecánico", "Mantenimiento Preventivo PM 2"), ("Convencional_Mecánico", "Mantenimiento Preventivo PM 3"), ("Convencional_Mecánico", "Mantenimiento Preventivo PM 4"),
             ("Convencional_Eléctrico", "Instalaciones Eléctricas - General"), ("Convencional_Eléctrico", "Mantenimiento Eléctrico - General"), ("Convencional_Eléctrico", "Tendido y Traslado de cables - General"), ("Convencional_Eléctrico", "Mantenimiento Preventivo Eléctrico - Convencional"), ("Convencional_Eléctrico", "Mantenimiento Correctivo Eléctrico - Convencional"), ("Convencional_Eléctrico", "Rebobinado de Motor"), ("Convencional_Eléctrico", "Telefonos"),
             ("Fabricacion_Soldadura", "Fabricaciones en General para Mina"), ("Fabricacion_Soldadura", "Fabricaciones en General para Taller"), ("Fabricacion_Soldadura", "Fabricaciones en General"), ("Fabricacion_Soldadura", "Fabricación de Alcayatas"), ("Fabricacion_Soldadura", "Correcciones de Fabricación - General"), ("Fabricacion_Soldadura", "Mantenimiento Preventivos - Convencional"),
             ("Instalaciones", "Instalaciones de Estructuras en General"), ("Instalaciones", "Instalaciones de Estructuras en Int. Mina"), ("Instalaciones", "Instalaciones de Estructuras en Campamento"), ("Instalaciones", "Telefonos"),
-        ]
-        for i, (tk, n) in enumerate(tipos_trabajo):
+        ]):
             db.add(WorkType(type_key=tk, name=n, position=i))
-
-        acciones = [
+        for i, (gk, n) in enumerate([
             ("Trackless", "Mantenimiento Preventivo"), ("Trackless", "Mantenimiento Correctivo"), ("Trackless", "Inspección (Liberación Eq.)"),
             ("Convencional_Electrico", "Mantenimiento Preventivo"), ("Convencional_Electrico", "Mantenimiento Correctivo"), ("Convencional_Electrico", "Instalación"), ("Convencional_Electrico", "Fabricación"), ("Convencional_Electrico", "Inspección (Liberación Eq.)"),
-        ]
-        for i, (gk, n) in enumerate(acciones):
+        ]):
             db.add(Action(group_key=gk, name=n, position=i))
-
         colab_data = {
             "Trackless": ["Wilson Apaza","Elvis Avalos","Yoel Castillo","Ronaldo Ccompara","Yordan Elguera","Miguel Espiritu","Jordi Gallegos","Jimy Huaman","Rivaldo Mamani","Ademer Moreto","Eddy Quispe","Felix Quispe","Jesús Quispe","Jesús Ramirez","Edwin Torres","Martin Sillocca"],
             "Convencional": ["Moises de la Cadena","Edgardo del Carpio","Erik Inca","Alan Llanquecha","Diego Machaca","Vlady mamani","Artemio Payehuanca","Fredy Taya","Edgar Zela","Aldair Vilca","Abraham Dionisio"],
@@ -77,7 +65,6 @@ def seed_config():
         for gk, names in colab_data.items():
             for i, n in enumerate(names):
                 db.add(Collaborator(group_name=gk, name=n, position=i))
-
         equipos_data = [
             ("Alimak", "Trackless", [("Alimak", "fin")]),
             ("Bomba de Pistón", "Trackless", [(f"Electrobomba de Pistón (EB.{i}-P)", "fin") for i in range(10, 17)]),
@@ -110,94 +97,80 @@ def seed_config():
             db.flush()
             for spos, (sname, smeters) in enumerate(subs):
                 db.add(EquipmentSubitem(category_id=cat.id, name=sname, meters=smeters, position=spos))
-
         db.commit()
-        print("[OK] Config data seeded successfully")
+        print("[OK] Hardcoded seed applied")
     except Exception as e:
         db.rollback()
-        print(f"[ERROR] Seed error: {e}")
+        print(f"[ERROR] Hardcoded seed: {e}")
     finally:
         db.close()
 
-seed_config()
+# ─── Apply config_seed.json (only if tables empty) ────────────────────
+import json as _json
+_CONFIG_SEED = os.path.join(BASE_DIR, "config_seed.json")
 
-# ─── Add default_action column to work_types if not exists ─────────────
+def _apply_seed_from_json():
+    if not os.path.exists(_CONFIG_SEED):
+        return
+    try:
+        _sd = SessionLocal()
+        if _sd.query(Turno).count() > 0:
+            _sd.close()
+            return
+        with open(_CONFIG_SEED, "r", encoding="utf-8") as _f:
+            _s = _json.load(_f)
+
+        for i, t in enumerate(_s.get("turnos", [])):
+            _sd.add(Turno(name=t["name"], position=i))
+        for i, n in enumerate(_s.get("niveles", [])):
+            _sd.add(Nivel(name=n["name"], position=i))
+        for c in _s.get("colaboradores", []):
+            _sd.add(Collaborator(group_name=c["group_name"], name=c["name"], position=c.get("position", 0)))
+        for m in _s.get("macroprocesos", []):
+            _sd.add(Macroprocess(group_key=m["group_key"], name=m["name"], position=m.get("position", 0)))
+        for w in _s.get("tipos_trabajo", []):
+            _sd.add(WorkType(type_key=w["type_key"], name=w["name"], default_action=w.get("default_action", ""), position=w.get("position", 0)))
+        for a in _s.get("acciones", []):
+            _sd.add(Action(group_key=a["group_key"], name=a["name"], position=a.get("position", 0)))
+        for eq in _s.get("equipos", []):
+            _cat = EquipmentCategory(name=eq["name"], action_group=eq.get("action_group", ""), position=eq.get("position", 0))
+            _sd.add(_cat)
+            _sd.flush()
+            for j, sub in enumerate(eq.get("subitems", [])):
+                _sd.add(EquipmentSubitem(category_id=_cat.id, name=sub["name"], meters=sub.get("meters", "fin"), position=j))
+        _sd.commit()
+        total = sum(len(v) for v in _s.values())
+        print(f"[OK] Seed applied from config_seed.json ({total} records)")
+    except Exception as _e:
+        _sd.rollback()
+        print(f"[WARN] Could not apply config_seed.json: {_e}")
+    finally:
+        _sd.close()
+
+# JSON seed first (primary), hardcoded seed second (fallback if no JSON)
+_apply_seed_from_json()
+_seed_hardcoded()
+
+# ─── Ensure schema columns exist ─────────────────────────────────────────
+_try_alter = lambda sql, msg: (_d := SessionLocal(), _d.execute(_st(sql)), _d.commit(), _d.close(), print(msg)) if None else None
 try:
-    _d = SessionLocal()
-    _d.execute(_st('ALTER TABLE work_types ADD COLUMN default_action VARCHAR(200)'))
-    _d.commit()
-    print("[MIGRACION] Columna default_action agregada a work_types")
-except Exception:
-    _d.rollback()  # column already exists or table issue
-finally:
-    _d.close()
-
-# ─── Data migration: split Convencional_Electrico actions ───────────────
+    _d = SessionLocal(); _d.execute(_st('ALTER TABLE work_types ADD COLUMN default_action VARCHAR(200)')); _d.commit(); _d.close(); print("[MIGRACION] Columna default_action agregada a work_types")
+except: _d.rollback(); _d.close()
 try:
-    _d = SessionLocal()
-    old_actions = _d.query(Action).filter(Action.group_key == 'Convencional_Electrico').all()
-    if old_actions:
-        max_pos = _d.query(_sf.max(Action.position)).scalar() or 0
-        for a in old_actions:
-            a.group_key = 'Convencional'
-            _d.add(Action(group_key='Electrico', name=a.name, position=max_pos + 1))
-            max_pos += 1
-        _d.commit()
-        print(f"[MIGRACION] {len(old_actions)} acciones migradas de Convencional_Electrico → Convencional + Electrico")
-    _d.close()
-except Exception as e:
-    _d.rollback(); _d.close()
-    print(f"[ERROR] Migracion acciones: {e}")
+    _d = SessionLocal(); _d.execute(_st('ALTER TABLE job_entries ADD COLUMN collaborators TEXT')); _d.commit(); _d.close(); print("[MIGRACION] Columna collaborators agregada a job_entries")
+except: _d.rollback(); _d.close()
 
-# ─── Data migration: WorkTypes shared → group-specific copies ──────────
-try:
-    _d = SessionLocal()
-    for shared_key in ['Instalaciones', 'Fabricacion_Soldadura']:
-        shared_wts = _d.query(WorkType).filter(WorkType.type_key == shared_key).all()
-        if shared_wts:
-            for group in ['Convencional', 'Electrico']:
-                new_key = f'{group}_{shared_key}'
-                existing = {w.name for w in _d.query(WorkType).filter(WorkType.type_key == new_key).all()}
-                max_pos = _d.query(_sf.max(WorkType.position)).scalar() or 0
-                for wt in shared_wts:
-                    if wt.name not in existing:
-                        _d.add(WorkType(type_key=new_key, name=wt.name, position=max_pos + 1))
-                        max_pos += 1
-            _d.commit()
-            print(f"[MIGRACION] WorkTypes {shared_key} → Convencional_ y Electrico_")
-    _d.close()
-except Exception as e:
-    _d.rollback(); _d.close()
-    print(f"[ERROR] Migracion worktypes: {e}")
-
-# ─── Add collaborators column to job_entries if not exists ────────────
-try:
-    _d = SessionLocal()
-    _d.execute(_st('ALTER TABLE job_entries ADD COLUMN collaborators TEXT'))
-    _d.commit()
-    print("[MIGRACION] Columna collaborators agregada a job_entries")
-except Exception:
-    _d.rollback()
-finally:
-    _d.close()
-
-# ─── Create performance indexes (ignore if already exist) ─────────────
-_index_sqls = [
+# ─── Create indexes ─────────────────────────────────────────────────────
+for _sql in [
     "CREATE INDEX IF NOT EXISTS ix_reports_date_id ON reports(date, id)",
     "CREATE INDEX IF NOT EXISTS ix_reports_group_shift_date ON reports(group_name, shift, date)",
     "CREATE INDEX IF NOT EXISTS ix_reports_created_at_id ON reports(created_at, id)",
     "CREATE INDEX IF NOT EXISTS ix_job_entries_report_id ON job_entries(report_id)",
-]
-for _sql in _index_sqls:
+]:
     try:
-        _d = SessionLocal()
-        _d.execute(_st(_sql))
-        _d.commit()
-    except Exception:
-        _d.rollback()
-    finally:
-        _d.close()
-print("[MIGRACION] Indices de performance verificados")
+        _d = SessionLocal(); _d.execute(_st(_sql)); _d.commit(); _d.close()
+    except: _d.rollback(); _d.close()
+print("[OK] Indices verificados")
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
 
@@ -626,6 +599,42 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         } for e in report.entries],
     }
     return d
+
+
+DELETE_REPORT_PASSWORD = "70212352"
+
+
+@app.delete("/api/reports/{report_id}")
+def delete_report(report_id: int, password: str = Query(...), db: Session = Depends(get_db)):
+    if password != DELETE_REPORT_PASSWORD:
+        raise HTTPException(401, "Contraseña incorrecta")
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(404, "Reporte no encontrado")
+    db.delete(report)
+    db.commit()
+    return {"ok": True, "deleted_id": report_id}
+
+
+@app.post("/api/reports/batch-delete")
+def batch_delete_reports(ids: list[int] = Body(...), password: str = Body(...), db: Session = Depends(get_db)):
+    if password != DELETE_REPORT_PASSWORD:
+        raise HTTPException(401, "Contraseña incorrecta")
+    deleted = []
+    for rid in ids:
+        report = db.query(Report).filter(Report.id == rid).first()
+        if report:
+            db.delete(report)
+            deleted.append(rid)
+    db.commit()
+    return {"ok": True, "deleted_ids": deleted}
+
+
+@app.post("/api/reports/delete-verify")
+def verify_delete_password(password: str = Body(..., embed=True)):
+    if password == DELETE_REPORT_PASSWORD:
+        return {"ok": True}
+    raise HTTPException(401, "Contraseña incorrecta")
 
 
 @app.post("/api/reports/{entry_id}/images")

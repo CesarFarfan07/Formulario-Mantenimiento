@@ -287,7 +287,28 @@
         </div>
     </div>
 
+    <!-- Password Modal for Delete -->
+    <div class="modal fade" id="deletePasswordModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content bg-dark border-danger">
+                <div class="modal-header border-danger py-2">
+                    <h6 class="modal-title text-danger"><i class="bi bi-exclamation-triangle"></i> Eliminar reporte(s)</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="text-muted small mb-3">Ingrese su DNI para confirmar la eliminación</p>
+                    <input type="password" class="form-control mb-2" id="deletePasswordInput" placeholder="DNI" onkeydown="if(event.key==='Enter') confirmDeleteWithPassword()">
+                    <div id="deletePasswordError" class="text-danger small d-none">Contraseña incorrecta</div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-sm btn-danger" onclick="confirmDeleteWithPassword()"><i class="bi bi-trash"></i> Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/app.js?v=5"></script>
+    <script src="/static/js/app.js?v=6"></script>
 </body>
 </html>
