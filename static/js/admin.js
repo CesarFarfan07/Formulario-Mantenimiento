@@ -79,29 +79,75 @@ function renderIndependentPanels() {
         const panel = document.getElementById(`panel-${e}`);
         if (!panel) return;
         if (!items.length) { panel.innerHTML = '<p class="text-muted small p-2 mb-0">Sin datos</p>'; return; }
+
         if (e === 'equipos') {
-            let html = '<div class="list-group list-group-flush"><div class="table-responsive"><table class="table table-dark table-sm mb-0"><tbody>';
+            // Group equipment by action_group
+            const groups = { Trackless: [], Convencional: [], Otros: [] };
             items.forEach(cat => {
-                html += `<tr><td class="ps-2"><strong>${cat.name}</strong> <span class="badge bg-secondary">${cat.action_group||'—'}</span> <span class="text-muted small">(${cat.subitems?.length||0} sub)</span></td>
-                    <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-outline-info py-0 px-1" onclick="editItem('equipos', ${cat.id})"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteItem('equipos', ${cat.id})"><i class="bi bi-trash"></i></button>
-                    </td></tr>`;
+                const g = cat.action_group === 'Trackless' ? 'Trackless' : cat.action_group === 'Convencional' ? 'Convencional' : 'Otros';
+                groups[g].push(cat);
             });
-            html += '</tbody></table></div></div>';
-            panel.innerHTML = html;
+            const groupConfig = [
+                { key: 'Trackless', label: 'Trackless', icon: 'bi-truck', color: 'info' },
+                { key: 'Convencional', label: 'Convencional', icon: 'bi-tools', color: 'success' },
+                { key: 'Otros', label: 'Sin grupo', icon: 'bi-question-circle', color: 'secondary' },
+            ];
+            let html = '';
+            groupConfig.forEach(gc => {
+                const list = groups[gc.key];
+                if (!list.length) return;
+                html += `<div class="mb-2">
+                    <div class="d-flex align-items-center gap-2 px-2 py-1" style="border-bottom:1px solid rgba(255,255,255,.06);">
+                        <i class="bi ${gc.icon} text-${gc.color}"></i>
+                        <span class="fw-bold small text-${gc.color}">${gc.label}</span>
+                        <span class="badge bg-${gc.color} bg-opacity-25 text-${gc.color}">${list.length}</span>
+                    </div>
+                    <div class="table-responsive"><table class="table table-dark table-sm mb-0"><tbody>`;
+                list.forEach(cat => {
+                    html += `<tr><td class="ps-2"><strong>${cat.name}</strong> <span class="text-muted small">(${cat.subitems?.length||0} sub)</span></td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-sm btn-outline-info py-0 px-1" onclick="editItem('equipos', ${cat.id})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteItem('equipos', ${cat.id})"><i class="bi bi-trash"></i></button>
+                        </td></tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+            });
+            panel.innerHTML = html || '<p class="text-muted small p-2 mb-0">Sin equipos</p>';
+
         } else if (e === 'colaboradores') {
-            let html = '<div class="list-group list-group-flush"><div class="table-responsive"><table class="table table-dark table-sm mb-0"><tbody>';
+            // Group collaborators by group_name
+            const groups = { Trackless: [], Convencional: [], Electrico: [] };
             items.forEach(item => {
-                const badge = { Trackless: 'info', Convencional: 'success', Electrico: 'warning' }[item.group_name] || 'secondary';
-                html += `<tr><td class="ps-2"><span class="badge bg-${badge} me-1">${item.group_name}</span> ${item.name}</td>
-                    <td class="text-end text-nowrap">
-                        <button class="btn btn-sm btn-outline-info py-0 px-1" onclick="editItem('colaboradores', ${item.id})"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteItem('colaboradores', ${item.id})"><i class="bi bi-trash"></i></button>
-                    </td></tr>`;
+                const g = item.group_name === 'Trackless' ? 'Trackless' : item.group_name === 'Convencional' ? 'Convencional' : 'Electrico';
+                if (!groups[g]) groups[g] = [];
+                groups[g].push(item);
             });
-            html += '</tbody></table></div></div>';
-            panel.innerHTML = html;
+            const groupConfig = [
+                { key: 'Trackless', label: 'Trackless', icon: 'bi-truck', color: 'info' },
+                { key: 'Convencional', label: 'Convencional', icon: 'bi-tools', color: 'success' },
+                { key: 'Electrico', label: 'Eléctrico', icon: 'bi-lightning', color: 'warning' },
+            ];
+            let html = '';
+            groupConfig.forEach(gc => {
+                const list = groups[gc.key] || [];
+                if (!list.length) return;
+                html += `<div class="mb-2">
+                    <div class="d-flex align-items-center gap-2 px-2 py-1" style="border-bottom:1px solid rgba(255,255,255,.06);">
+                        <i class="bi ${gc.icon} text-${gc.color}"></i>
+                        <span class="fw-bold small text-${gc.color}">${gc.label}</span>
+                        <span class="badge bg-${gc.color} bg-opacity-25 text-${gc.color}">${list.length}</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 p-2">`;
+                list.forEach(item => {
+                    html += `<span class="badge bg-${gc.color} bg-opacity-10 text-${gc.color} fs-6 fw-normal px-3 py-2" style="border:1px solid rgba(255,255,255,.06);">${item.name}
+                        <button class="btn btn-sm btn-outline-light py-0 px-1 ms-2" onclick="editItem('colaboradores', ${item.id})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-1 ms-1" onclick="deleteItem('colaboradores', ${item.id})"><i class="bi bi-trash"></i></button>
+                    </span>`;
+                });
+                html += `</div></div>`;
+            });
+            panel.innerHTML = html || '<p class="text-muted small p-2 mb-0">Sin colaboradores</p>';
+
         } else {
             let html = '<div class="d-flex flex-wrap gap-1 p-2">';
             items.forEach(item => {

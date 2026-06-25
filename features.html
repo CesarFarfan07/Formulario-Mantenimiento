@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reporte Diario de Mantenimiento Minero</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0b1120; color: #e2e8f0; }
+        .hero { padding: 4rem 0 3rem; text-align: center; background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(245,158,11,.08) 0%, transparent 60%); }
+        .hero h1 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero p { font-size: 1.1rem; opacity: .6; max-width: 700px; margin: 1rem auto 0; }
+        .section-title { font-weight: 700; font-size: 1.3rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: .5rem; }
+        .section-title i { font-size: 1.3rem; }
+        .feature-card { background: rgba(30,41,59,.5); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 1.5rem; height: 100%; transition: transform .2s, box-shadow .2s; backdrop-filter: blur(8px); }
+        .feature-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.3); }
+        .feature-card .icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+        .feature-card h5 { font-weight: 700; font-size: .95rem; margin-bottom: .5rem; }
+        .feature-card p { font-size: .82rem; opacity: .6; line-height: 1.5; }
+        .badge-feature { font-size: .65rem; font-weight: 600; padding: .25em .7em; border-radius: 20px; letter-spacing: .3px; }
+        .kpi-highlight { background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(245,158,11,.05)); border: 1px solid rgba(245,158,11,.15); border-radius: 12px; padding: 2rem; text-align: center; }
+        .kpi-highlight .num { font-size: 2.2rem; font-weight: 800; color: #f59e0b; }
+        .kpi-highlight .label { font-size: .8rem; opacity: .5; margin-top: .2rem; }
+        .testimonial { border-left: 3px solid #f59e0b; padding: 1rem 1.5rem; background: rgba(255,255,255,.02); border-radius: 0 12px 12px 0; margin-bottom: 1rem; }
+        .testimonial p { font-size: .85rem; opacity: .7; font-style: italic; }
+        .testimonial .author { font-size: .75rem; font-weight: 600; opacity: .5; margin-top: .3rem; }
+        .tech-badge { display: inline-block; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.06); border-radius: 20px; padding: .3rem 1rem; font-size: .75rem; margin: .2rem; }
+        .footer { padding: 2rem 0; text-align: center; opacity: .3; font-size: .75rem; border-top: 1px solid rgba(255,255,255,.05); margin-top: 3rem; }
+        .container { max-width: 1100px; }
+
+        @media (max-width: 576px) {
+            .hero h1 { font-size: 1.6rem; }
+            .hero p { font-size: .9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HERO -->
+    <div class="hero">
+        <div class="container">
+            <div style="font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;opacity:.3;margin-bottom:1rem;">Sistema de Gestión de Mantenimiento</div>
+            <h1><i class="bi bi-tools" style="-webkit-text-fill-color: #f59e0b;"></i> Reporte Diario de Mantenimiento</h1>
+            <p>Plataforma digital para registrar, monitorear y analizar el mantenimiento de equipos mineros en tiempo real, incluso sin conexión a internet.</p>
+        </div>
+    </div>
+
+    <!-- BENEFICIOS CLAVE -->
+    <div class="container" style="margin-top: -1rem;">
+        <div class="row g-3 mb-5">
+            <div class="col-md-3 col-6">
+                <div class="kpi-highlight">
+                    <i class="bi bi-wifi-off" style="font-size:1.5rem;color:#f59e0b;opacity:.5;"></i>
+                    <div class="num">100%</div>
+                    <div class="label">Funciona sin internet</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="kpi-highlight">
+                    <i class="bi bi-phone" style="font-size:1.5rem;color:#3b82f6;opacity:.5;"></i>
+                    <div class="num">Móvil</div>
+                    <div class="label">Desde cualquier dispositivo</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="kpi-highlight">
+                    <i class="bi bi-graph-up" style="font-size:1.5rem;color:#10b981;opacity:.5;"></i>
+                    <div class="num">Dashboard</div>
+                    <div class="label">Gerencial en tiempo real</div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="kpi-highlight">
+                    <i class="bi bi-file-earmark-excel" style="font-size:1.5rem;color:#8b5cf6;opacity:.5;"></i>
+                    <div class="num">Reportes</div>
+                    <div class="label">Excel, CSV y PDF</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARACTERÍSTICAS -->
+    <div class="container mb-5">
+        <div class="section-title" style="color:#f59e0b;"><i class="bi bi-list-check"></i> Funcionalidades</div>
+        <div class="row g-3">
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#f59e0b22,#f9731622);color:#f59e0b;"><i class="bi bi-pencil-square"></i></div>
+                    <h5>Formulario Inteligente</h5>
+                    <p>Guía al trabajador paso a paso. Copia datos del trabajo anterior si es el mismo equipo, nivel o trabajadores. Reduce errores y acelera el llenado.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#3b82f622,#06b6d422);color:#3b82f6;"><i class="bi bi-wifi-off"></i></div>
+                    <h5>Offline Primero</h5>
+                    <p>El trabajador llena el formulario sin señal. Los datos se guardan en su celular y se envían cuando hay conexión. Ideal para interior mina.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#10b98122,#34d39922);color:#10b981;"><i class="bi bi-bar-chart-fill"></i></div>
+                    <h5>Dashboard Gerencial</h5>
+                    <p>KPIs en tiempo real: trabajos por equipo, horas hombre, ratio preventivo/correctivo, productividad por trabajador, tendencias diarias y semanales.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#8b5cf622,#a855f722);color:#a855f7;"><i class="bi bi-arrow-left-right"></i></div>
+                    <h5>Comparación de Períodos</h5>
+                    <p>Compara dos períodos lado a lado. Visualiza la evolución de KPIs con indicadores de mejora o alerta. Toma decisiones basadas en datos.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#ef444422,#f43f5e22);color:#f43f5e;"><i class="bi bi-bullseye"></i></div>
+                    <h5>OKRs Automáticos</h5>
+                    <p>El sistema sugiere OKRs basados en los datos reales del período: calidad de mantenimiento, productividad del equipo y cobertura de registros.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#14b8a622,#10b98122);color:#14b8a6;"><i class="bi bi-calendar-week"></i></div>
+                    <h5>Resúmenes Semanales</h5>
+                    <p>Agrupación automática por semana ISO con desglose por equipo de trabajo. Visualiza la productividad semanal de cada grupo.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#f9731622,#f59e0b22);color:#f97316;"><i class="bi bi-trophy-fill"></i></div>
+                    <h5>Ranking de Colaboradores</h5>
+                    <p>Identifica a los trabajadores más activos. Visualiza quién reporta más trabajos y su distribución por equipo de mantenimiento.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#06b6d422,#3b82f622);color:#06b6d4;"><i class="bi bi-whatsapp"></i></div>
+                    <h5>Integración WhatsApp</h5>
+                    <p>Envía el reporte completo por WhatsApp con un solo clic. El trabajador comparte el resumen del día con su supervisor al instante.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#6366f122,#8b5cf622);color:#8b5cf6;"><i class="bi bi-file-earmark-excel"></i></div>
+                    <h5>Exportación de Datos</h5>
+                    <p>Descarga reportes en Excel y CSV. Genera el reporte diario automáticamente. Todos los datos estructurados para análisis posteriores.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#22c55e22,#10b98122);color:#22c55e;"><i class="bi bi-images"></i></div>
+                    <h5>Evidencia Fotográfica</h5>
+                    <p>Adjunta fotos del trabajo realizado. Cada imagen queda vinculada a su entrada específica. Ideal para sustento de trabajos críticos.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#ec489922,#d946ef22);color:#ec4899;"><i class="bi bi-gear"></i></div>
+                    <h5>Panel de Administración</h5>
+                    <p>Configura turnos, niveles, colaboradores, equipos, macroprocesos y tipos de trabajo sin tocar código. Todo desde una interfaz web.</p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="icon" style="background:linear-gradient(135deg,#94a3b822,#64748b22);color:#94a3b8;"><i class="bi bi-search"></i></div>
+                    <h5>Búsqueda y Filtros</h5>
+                    <p>Busca reportes por trabajador, fecha o rango de fechas. Visualiza el detalle completo incluyendo imágenes adjuntas.</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SEGURIDAD Y TECNOLOGÍA -->
+    <div class="container mb-5">
+        <div class="section-title" style="color:#3b82f6;"><i class="bi bi-shield-check"></i> Tecnología</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem;">
+            <span class="tech-badge"><i class="bi bi-lightning-fill" style="color:#f59e0b;"></i> FastAPI</span>
+            <span class="tech-badge"><i class="bi bi-database" style="color:#3b82f6;"></i> SQLite / PostgreSQL</span>
+            <span class="tech-badge"><i class="bi bi-phone" style="color:#10b981;"></i> Responsive Móvil</span>
+            <span class="tech-badge"><i class="bi bi-moon" style="color:#8b5cf6;"></i> Modo Oscuro</span>
+            <span class="tech-badge"><i class="bi bi-cloud-arrow-up" style="color:#f97316;"></i> Deploy en la Nube</span>
+            <span class="tech-badge"><i class="bi bi-shield-lock" style="color:#ec4899;"></i> Datos Seguros</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+            <div style="font-size:.8rem;opacity:.5;"><i class="bi bi-check-circle-fill" style="color:#10b981;opacity:1;"></i> Acceso desde cualquier dispositivo con navegador</div>
+            <div style="font-size:.8rem;opacity:.5;"><i class="bi bi-check-circle-fill" style="color:#10b981;opacity:1;"></i> No requiere instalación en los equipos</div>
+            <div style="font-size:.8rem;opacity:.5;"><i class="bi bi-check-circle-fill" style="color:#10b981;opacity:1;"></i> Funciona en celulares, tablets y computadoras</div>
+            <div style="font-size:.8rem;opacity:.5;"><i class="bi bi-check-circle-fill" style="color:#10b981;opacity:1;"></i> Escalable a múltiples unidades mineras</div>
+        </div>
+    </div>
+
+    <!-- PARA QUIÉN -->
+    <div class="container mb-5">
+        <div class="section-title" style="color:#10b981;"><i class="bi bi-people-fill"></i> ¿Para quién es?</div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="testimonial">
+                    <p>"Registro en interior mina sin señal, con datos que se sincronizan automáticamente. Mis trabajadores lo usan desde el celular."</p>
+                    <div class="author">— Superintendente de Mantenimiento</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial">
+                    <p>"Veo en tiempo real cuántos trabajos se hicieron por equipo, quién trabajó y cuánto tiempo tomó. Tomo decisiones en el momento."</p>
+                    <div class="author">— Jefe de Guardia</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="testimonial">
+                    <p>"Comparo meses anteriores y veo si estamos mejorando. Los OKRs me dan una guía clara de qué ajustar."</p>
+                    <div class="author">— Gerente de Mantenimiento</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DIFERENCIALES -->
+    <div class="container mb-5">
+        <div class="section-title" style="color:#f59e0b;"><i class="bi bi-star-fill"></i> ¿Por qué este sistema?</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="feature-card" style="padding:1.2rem;">
+                    <div style="display:flex;gap:1rem;align-items:start;">
+                        <div style="font-size:1.5rem;color:#f59e0b;">📄</div>
+                        <div>
+                            <h5 style="margin:0 0 .3rem;">Adiós al papel y Excel</h5>
+                            <p style="margin:0;opacity:.6;">Los reportes se digitalizan desde el origen. Sin transcripciones, sin pérdida de información, sin papeles acumulados.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card" style="padding:1.2rem;">
+                    <div style="display:flex;gap:1rem;align-items:start;">
+                        <div style="font-size:1.5rem;color:#3b82f6;">📊</div>
+                        <div>
+                            <h5 style="margin:0 0 .3rem;">Datos que hablan</h5>
+                            <p style="margin:0;opacity:.6;">Cada dato ingresado se convierte automáticamente en un KPI en el dashboard. Sin trabajo extra de procesamiento.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card" style="padding:1.2rem;">
+                    <div style="display:flex;gap:1rem;align-items:start;">
+                        <div style="font-size:1.5rem;color:#10b981;">⚡</div>
+                        <div>
+                            <h5 style="margin:0 0 .3rem;">Implementación rápida</h5>
+                            <p style="margin:0;opacity:.6;">No requiere meses de desarrollo. Se configura y empieza a usar en días. Los trabajadores lo aprenden en minutos.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card" style="padding:1.2rem;">
+                    <div style="display:flex;gap:1rem;align-items:start;">
+                        <div style="font-size:1.5rem;color:#8b5cf6;">📱</div>
+                        <div>
+                            <h5 style="margin:0 0 .3rem;">Sin instalación</h5>
+                            <p style="margin:0;opacity:.6;">Funciona en cualquier celular con solo abrir el navegador. No ocupa espacio, no requiere permisos de TI, no hay APK que distribuir.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="container">
+            Sistema de Reporte Diario de Mantenimiento &mdash; Diseñado para la minería peruana
+        </div>
+    </div>
+
+</body>
+</html>

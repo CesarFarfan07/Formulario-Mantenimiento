@@ -655,6 +655,8 @@ async function addEntry() {
     const previousEntry = cards[cards.length - 1];
     let prevNivel = null, prevLugar = null, prevColabs = null;
     let prevEquipoCat = null, prevEquipoSub = null, prevEquipoOtras = null;
+    let prevHorometroMotor = null, prevHorometroJumbo = null, prevHorometroVolquetes = null;
+    let prevKilometraje = null, prevHorometroElectrico = null, prevHorometroPercusion = null;
 
     if (previousEntry) {
         prevNivel = previousEntry.querySelector('.nivel')?.value;
@@ -663,6 +665,12 @@ async function addEntry() {
         prevEquipoCat = previousEntry.querySelector('.equipo-categoria')?.value;
         prevEquipoSub = previousEntry.querySelector('.equipo-sub')?.value;
         prevEquipoOtras = previousEntry.querySelector('.equipo-sub-otras')?.value;
+        prevHorometroMotor = previousEntry.querySelector('.horometro-motor')?.value;
+        prevHorometroJumbo = previousEntry.querySelector('.horometro-jumbo')?.value;
+        prevHorometroVolquetes = previousEntry.querySelector('.horometro-volquetes')?.value;
+        prevKilometraje = previousEntry.querySelector('.kilometraje')?.value;
+        prevHorometroElectrico = previousEntry.querySelector('.horometro-electrico')?.value;
+        prevHorometroPercusion = previousEntry.querySelector('.horometro-percusion')?.value;
     }
 
     // Reset clone fields
@@ -806,7 +814,7 @@ async function addEntry() {
             if (dstLugar) dstLugar.value = prevLugar;
         }
 
-        // Apply equipment copy (equipo, sub-equipo, sub-otras, meter fields — NOT horometers)
+        // Apply equipment copy (equipo, sub-equipo, sub-otras, meter fields + horometers)
         if (copyEquipo && prevEquipoCat) {
             const dstCat = clone.querySelector('.equipo-categoria');
             const dstSub = clone.querySelector('.equipo-sub');
@@ -836,6 +844,17 @@ async function addEntry() {
                         metersSection.querySelector('.medidor-fin')?.classList.add('d-none');
                     }
                     if (mide) showMeters(clone, mide);
+                    // Copy horometer/kilometer values from previous entry
+                    const setVal = (sel, val) => {
+                        const el = clone.querySelector(sel);
+                        if (el && val) el.value = val;
+                    };
+                    setVal('.horometro-motor', prevHorometroMotor);
+                    setVal('.horometro-jumbo', prevHorometroJumbo);
+                    setVal('.horometro-volquetes', prevHorometroVolquetes);
+                    setVal('.kilometraje', prevKilometraje);
+                    setVal('.horometro-electrico', prevHorometroElectrico);
+                    setVal('.horometro-percusion', prevHorometroPercusion);
                 }, 100);
             }
         }
