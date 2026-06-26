@@ -245,8 +245,6 @@ def build_excel(reports_data: list) -> Workbook:
                 entry = {}
             sku = f"Rep-{sku_counter:04d}"
             fecha = rp.get("date")
-            if hasattr(fecha, "isoformat"):
-                fecha = fecha.isoformat()
 
             group_name = rp.get("group_name", "")
             shift = rp.get("shift", "")
