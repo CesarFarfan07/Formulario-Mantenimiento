@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     document.querySelectorAll('.entry-card').forEach((card, i) => {
         initEntry(card);
-        if (saved && saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
     });
     if (saved) {
         if (saved.date) document.getElementById('reportDate').value = saved.date;
@@ -28,11 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (saved.groupName) {
             document.getElementById('groupName').value = saved.groupName;
             onGroupChange();
-            // Re-apply card values after onGroupChange populates collaborators
-            document.querySelectorAll('.entry-card').forEach((card, i) => {
-                if (saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
-            });
         }
+        // Restore all card fields after onGroupChange (so collaborator checkboxes exist)
+        document.querySelectorAll('.entry-card').forEach((card, i) => {
+            if (saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
+        });
     }
     renumberEntries();
     updateRemoveButtons();
@@ -45,42 +44,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function refreshOptions() {
     if (!opt) return;
     try {
+        // Save full form state before refreshing
+        saveFormState();
+
         const r = await fetch('/api/options');
         const newOpt = await r.json();
-
-        // Save checked collaborator names per card before refresh
-        const prevCardData = [];
-        document.querySelectorAll('.entry-card').forEach(card => {
-            const checked = new Set();
-            card.querySelectorAll('.colab-check:checked').forEach(cb => checked.add(cb.value));
-            const otrasVal = card.querySelector('.entry-colab-otras-input')?.value || '';
-            prevCardData.push({ checked, otrasVal });
-        });
 
         opt = newOpt;
         populateStaticSelects();
 
-        const group = document.getElementById('groupName').value;
-        if (group) onGroupChange();
-
-        // Restore checked collaborators per card
-        document.querySelectorAll('.entry-card').forEach((card, idx) => {
-            const data = prevCardData[idx];
-            if (!data) return;
-            card.querySelectorAll('.colab-check').forEach(cb => {
-                if (data.checked.has(cb.value) || data.checked.has('__otras__')) cb.checked = true;
-            });
-            if (data.checked.has('__otras__') && data.otrasVal) {
-                const row = card.querySelector('.entry-colab-otras-row');
-                if (row) { row.classList.remove('d-none'); card.querySelector('.entry-colab-otras-input').value = data.otrasVal; }
+        // Restore from localStorage after re-population
+        const saved = loadFormState();
+        if (saved) {
+            if (saved.date) document.getElementById('reportDate').value = saved.date;
+            if (saved.shift) document.getElementById('shift').value = saved.shift;
+            if (saved.groupName) {
+                document.getElementById('groupName').value = saved.groupName;
+                onGroupChange();
             }
-            populateEquipos(card);
-            populateMacroprocess(card);
-            populateNiveles(card);
-            populateActions(card);
-            const macro = card.querySelector('.macroprocess');
-            if (macro.value) onMacroprocessChange(macro);
-        });
+            document.querySelectorAll('.entry-card').forEach((card, i) => {
+                populateEquipos(card);
+                populateMacroprocess(card);
+                populateNiveles(card);
+                populateActions(card);
+                if (saved.entries && saved.entries[i]) restoreCardState(card, saved.entries[i]);
+            });
+        }
     } catch {}
 }
 
@@ -599,8 +588,11 @@ function validarMedidor(input, label) {
                 if (key && data.readings[key] !== null && data.readings[key] !== undefined) {
                     const lastVal = data.readings[key];
                     if (val <= lastVal) {
-                        alert(`El valor (${val}) debe ser mayor que la última lectura registrada (${lastVal}) para este equipo.`);
-                        this.value = '';
+                        // Skip "must be greater" check if same equipment (copied from previous entry)
+                        if (!card?.dataset?.sameEquipo) {
+                            alert(`El valor (${val}) debe ser mayor que la última lectura registrada (${lastVal}) para este equipo.`);
+                            this.value = '';
+                        }
                     }
                 }
             }
@@ -817,6 +809,7 @@ async function addEntry() {
 
         // Apply equipment copy (equipo, sub-equipo, sub-otras, meter fields + horometers)
         if (copyEquipo && prevEquipoCat) {
+            clone.dataset.sameEquipo = 'true';
             const dstCat = clone.querySelector('.equipo-categoria');
             const dstSub = clone.querySelector('.equipo-sub');
             const dstOtras = clone.querySelector('.equipo-sub-otras');
@@ -1018,10 +1011,14 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         // Build WhatsApp text
         const waText = buildWhatsAppText(report, entries, payload);
         const waUrl = getWhatsAppUrl(waText);
-        successHtml += `<div class="mt-3 text-center">
+        const waEncoded = encodeURIComponent(waText);
+        successHtml += `<div class="mt-3 text-center d-flex gap-2 justify-content-center flex-wrap">
             <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
-                <i class="bi bi-whatsapp me-1"></i> Enviar Reporte por WhatsApp
+                <i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp
             </a>
+            <button onclick="copyToClipboard('${waEncoded.replace(/'/g, "\\'")}')" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="bi bi-clipboard me-1"></i> Copiar texto
+            </button>
         </div>`;
 
         showModal('✅ Reporte Enviado', successHtml);
@@ -1272,13 +1269,17 @@ async function viewReport(id) {
 </div>`;
         });
 
-        // WhatsApp button
+        // WhatsApp button + copy button
         const waText = buildWhatsAppText(r, null, r);
         const waUrl = getWhatsAppUrl(waText);
-        html += `<div class="mt-3 text-center">
+        const waEncoded = encodeURIComponent(waText);
+        html += `<div class="mt-3 text-center d-flex gap-2 justify-content-center flex-wrap">
             <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
-                <i class="bi bi-whatsapp me-1"></i> Enviar Reporte por WhatsApp
+                <i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp
             </a>
+            <button onclick="copyToClipboard('${waEncoded.replace(/'/g, "\\'")}')" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="bi bi-clipboard me-1"></i> Copiar texto
+            </button>
         </div>`;
 
         showModal(`📋 Reporte #${r.id}`, html);
@@ -1318,6 +1319,24 @@ function getWhatsAppGroup(groupName) {
     return 'REPORTE DE MANTENIMIENTO';
 }
 
+function copyToClipboard(encodedText) {
+    const text = decodeURIComponent(encodedText);
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ Texto copiado al portapapeles');
+    }).catch(() => {
+        // Fallback for older browsers
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('✅ Texto copiado al portapapeles');
+    });
+}
+
 function buildWhatsAppText(report, entriesData, payload) {
     const group = payload?.group_name || report.group_name;
     const sep = '═══════════════════════════════';
@@ -1335,7 +1354,7 @@ function buildWhatsAppText(report, entriesData, payload) {
         msg += `📌 Tipo: ${e.work_type || '—'}\n`;
         msg += `⚡ Acción: ${e.action || '—'}\n`;
         msg += `🧑‍🔧 Colaboradores: ${colabs}\n`;
-        msg += `📝 Descripción: ${(e.description || '—').substring(0, 200)}\n`;
+        msg += `📝 Descripción: ${e.description || '—'}\n`;
         msg += `⚙️ Equipo: ${e.equipment || '—'}\n`;
         msg += `📊 Nivel: ${e.level || '—'}\n`;
         msg += `📍 Lugar: ${e.location || '—'}\n`;
@@ -1355,6 +1374,24 @@ function buildWhatsAppText(report, entriesData, payload) {
 
     msg += `📲 *Enviado desde el Sistema de Reporte Diario*`;
     return msg;
+}
+
+// ─── TOAST ──────────────────────────────────────────────────────────────────
+
+function showToast(msg, type = 'success') {
+    const container = document.getElementById('toastContainer') || (() => {
+        const c = document.createElement('div');
+        c.id = 'toastContainer';
+        c.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
+        document.body.appendChild(c);
+        return c;
+    })();
+    const t = document.createElement('div');
+    t.className = `alert alert-${type} alert-dismissible fade show mb-0`;
+    t.style.cssText = 'min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border-radius:12px;';
+    t.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    container.appendChild(t);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 4000);
 }
 
 // ─── DAILY REPORTS ─────────────────────────────────────────────────────────
