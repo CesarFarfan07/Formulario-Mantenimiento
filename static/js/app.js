@@ -618,25 +618,32 @@ function calcularDuracion(startInp, endInp, durInp) {
 }
 function confirmYesNo(msg) {
     return new Promise(resolve => {
-        const modal = document.getElementById('confirmModal');
-        const body = modal.querySelector('.modal-body');
-        const yesBtn = modal.querySelector('#confirmYes');
-        const noBtn = modal.querySelector('#confirmNo');
+        const modalEl = document.getElementById('confirmModal');
+        const body = modalEl.querySelector('.modal-body');
         body.textContent = msg;
-        modal._resolve = resolve;
-        const bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
-        bsModal.show();
+        // Use a single Modal instance to avoid backdrop accumulation
+        if (!window._confirmModal) {
+            window._confirmModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+        }
+        // Wait for full hide animation before resolving, so next modal can show cleanly
+        modalEl._confirmResolve = resolve;
+        window._confirmModal.show();
     });
 }
 document.getElementById('confirmYes')?.addEventListener('click', () => {
     const modal = document.getElementById('confirmModal');
-    modal._resolve?.(true);
-    bootstrap.Modal.getInstance(modal)?.hide();
+    const resolve = modal._confirmResolve;
+    modal._confirmResolve = null;
+    window._confirmModal?.hide();
+    // Resolve after hide animation completes so backdrop is removed
+    modal.addEventListener('hidden.bs.modal', () => resolve?.(true), { once: true });
 });
 document.getElementById('confirmNo')?.addEventListener('click', () => {
     const modal = document.getElementById('confirmModal');
-    modal._resolve?.(false);
-    bootstrap.Modal.getInstance(modal)?.hide();
+    const resolve = modal._confirmResolve;
+    modal._confirmResolve = null;
+    window._confirmModal?.hide();
+    modal.addEventListener('hidden.bs.modal', () => resolve?.(false), { once: true });
 });
 
 async function addEntry() {
