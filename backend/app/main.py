@@ -316,73 +316,76 @@ def list_reports(
     date_to: str = Query(None),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Report).options(joinedload(Report.worker))
-    if worker_name:
-        q = q.join(Worker).filter(Worker.name.ilike(f"%{worker_name}%"))
-    if date_from:
-        q = q.filter(Report.date >= parse_date(date_from))
-    if date_to:
-        q = q.filter(Report.date <= parse_date(date_to))
-    # Keyset pagination: (created_at, id) < (cursor_date, cursor_id)
-    if cursor_id is not None and cursor_date is not None:
-        try:
-            dt = datetime.fromisoformat(cursor_date)
-        except Exception:
-            dt = None
-        if dt is not None:
-            q = q.filter(
-                _st("(created_at, id) < (:cd, :ci)").bindparams(cd=dt, ci=cursor_id)
-            )
-    reports = q.order_by(Report.created_at.desc(), Report.id.desc()).limit(limit + 1).all()
-    has_more = len(reports) > limit
-    reports = reports[:limit]
-    result = []
-    for rp in reports:
-        d = {
-            "id": rp.id,
-            "worker_id": rp.worker_id,
-            "worker_name": rp.worker.name if rp.worker else f"ID {rp.worker_id}",
-            "date": rp.date,
-            "shift": rp.shift,
-            "group_name": rp.group_name,
-            "start_time": rp.start_time,
-            "end_time": rp.end_time,
-            "collaborators_trackless": rp.collaborators_trackless,
-            "collaborators_convencional": rp.collaborators_convencional,
-            "collaborators_electrico": rp.collaborators_electrico,
-            "created_at": rp.created_at.isoformat() if rp.created_at else None,
-            "entries": [{
-                "id": e.id,
-                "report_id": e.report_id,
-                "macroprocess": e.macroprocess,
-                "work_type": e.work_type,
-                "work_subtype": e.work_subtype,
-                "action": e.action,
-                "description": e.description,
-                "level": e.level,
-                "location": e.location,
-                "start_time_int": e.start_time_int.strftime("%H:%M") if e.start_time_int else None,
-                "end_time_int": e.end_time_int.strftime("%H:%M") if e.end_time_int else None,
-                "duration": e.duration,
-                "equipment": e.equipment,
-                "horometer_motor": e.horometer_motor,
-                "horometer_motor_jumbo": e.horometer_motor_jumbo,
-                "horometer_motor_volquetes": e.horometer_motor_volquetes,
-                "horometer_electric": e.horometer_electric,
-                "horometer_percussion": e.horometer_percussion,
-                "kilometer": e.kilometer,
-                "blanco": e.blanco,
-                "collaborators": e.collaborators,
-                "images": [{"id": img.id, "filename": img.filename, "original_name": img.original_name} for img in e.images],
-            } for e in rp.entries],
+    try:
+        q = db.query(Report).options(joinedload(Report.worker))
+        if worker_name:
+            q = q.join(Worker).filter(Worker.name.ilike(f"%{worker_name}%"))
+        if date_from:
+            q = q.filter(Report.date >= parse_date(date_from))
+        if date_to:
+            q = q.filter(Report.date <= parse_date(date_to))
+        # Keyset pagination: (created_at, id) < (cursor_date, cursor_id)
+        if cursor_id is not None and cursor_date is not None:
+            try:
+                dt = datetime.fromisoformat(cursor_date)
+            except Exception:
+                dt = None
+            if dt is not None:
+                q = q.filter(Report.created_at < dt).filter(Report.id < cursor_id)
+        reports = q.order_by(Report.created_at.desc(), Report.id.desc()).limit(limit + 1).all()
+        has_more = len(reports) > limit
+        reports = reports[:limit]
+        result = []
+        for rp in reports:
+            d = {
+                "id": rp.id,
+                "worker_id": rp.worker_id,
+                "worker_name": rp.worker.name if rp.worker else f"ID {rp.worker_id}",
+                "date": rp.date,
+                "shift": rp.shift,
+                "group_name": rp.group_name,
+                "start_time": rp.start_time,
+                "end_time": rp.end_time,
+                "collaborators_trackless": rp.collaborators_trackless,
+                "collaborators_convencional": rp.collaborators_convencional,
+                "collaborators_electrico": rp.collaborators_electrico,
+                "created_at": rp.created_at.isoformat() if rp.created_at else None,
+                "entries": [{
+                    "id": e.id,
+                    "report_id": e.report_id,
+                    "macroprocess": e.macroprocess,
+                    "work_type": e.work_type,
+                    "work_subtype": e.work_subtype,
+                    "action": e.action,
+                    "description": e.description,
+                    "level": e.level,
+                    "location": e.location,
+                    "start_time_int": e.start_time_int.strftime("%H:%M") if e.start_time_int else None,
+                    "end_time_int": e.end_time_int.strftime("%H:%M") if e.end_time_int else None,
+                    "duration": e.duration,
+                    "equipment": e.equipment,
+                    "horometer_motor": e.horometer_motor,
+                    "horometer_motor_jumbo": e.horometer_motor_jumbo,
+                    "horometer_motor_volquetes": e.horometer_motor_volquetes,
+                    "horometer_electric": e.horometer_electric,
+                    "horometer_percussion": e.horometer_percussion,
+                    "kilometer": e.kilometer,
+                    "blanco": e.blanco,
+                    "collaborators": e.collaborators,
+                    "images": [{"id": img.id, "filename": img.filename, "original_name": img.original_name} for img in e.images],
+                } for e in rp.entries],
+            }
+            result.append(d)
+        last_item = reports[-1] if reports else None
+        return {
+            "data": result,
+            "next_cursor": (last_item.id, last_item.created_at.isoformat()) if last_item and has_more else None,
+            "has_more": has_more,
         }
-        result.append(d)
-    last_item = reports[-1] if reports else None
-    return {
-        "data": result,
-        "next_cursor": (last_item.id, last_item.created_at.isoformat()) if last_item and has_more else None,
-        "has_more": has_more,
-    }
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Error al listar reportes: {exc}")
 
 
 @app.get("/api/reports/export/excel")
