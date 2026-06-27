@@ -5,7 +5,7 @@ Comandos para ejecutar en CMD o PowerShell
 **Cuando solo cambias configuración (admin)**
 
     cd "C:\\Users\\admin\\OneDrive\\TRABAJO\\08 U.M. Soledad\\15 Automatizaciones\\01 Codigo\\03 Formulario"
-    python backend\\export\_config.py
+    python backend\export_config.py
     git add -A
     git commit -m "update config"
     git push
@@ -13,8 +13,5 @@ Comandos para ejecutar en CMD o PowerShell
 **Cuando cambias código + configuración**
 
     cd "C:\\Users\\admin\\OneDrive\\TRABAJO\\08 U.M. Soledad\\15 Automatizaciones\\01 Codigo\\03 Formulario"
-    python backend\\export\_config.py
-    git add -A
-    git commit -m "update"
-    git push
+    python backend\export_config.py && git add -A && git commit -m "update" && git push
 

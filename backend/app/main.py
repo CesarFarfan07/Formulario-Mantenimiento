@@ -826,16 +826,19 @@ def _compute_period_stats(db, date_from, date_to, group):
     avg_minutes = round(total_minutes / total_jobs, 1) if total_jobs else 0
 
     # Jobs by equipment
-    equip_raw = (
-        q_base.with_entities(JobEntry.equipment, _sf.count(JobEntry.id), _sf.group_concat(JobEntry.duration, "|"))
+    equip_data = (
+        q_base.with_entities(JobEntry.equipment, JobEntry.duration)
         .filter(JobEntry.equipment.isnot(None), JobEntry.equipment != "")
-        .group_by(JobEntry.equipment)
-        .order_by(_sf.count(JobEntry.id).desc())
         .all()
     )
+    from collections import defaultdict
+    equip_durs = defaultdict(list)
+    for equip, dur in equip_data:
+        if dur:
+            equip_durs[equip].append(dur)
     jobs_by_equipment = []
-    for equip, cnt, durs_raw in equip_raw:
-        durs = durs_raw.split("|") if durs_raw else []
+    for equip, durs in sorted(equip_durs.items(), key=lambda x: -len(x[1])):
+        cnt = len(durs)
         mins = [_parse_duration_minutes(d) for d in durs]
         valid = [m for m in mins if m is not None]
         avg = round(sum(valid) / len(valid), 1) if valid else None
@@ -856,14 +859,16 @@ def _compute_period_stats(db, date_from, date_to, group):
 
     # Avg duration by team
     team_dur_q = (
-        q_base.with_entities(Report.group_name, _sf.group_concat(JobEntry.duration, "|"))
+        q_base.with_entities(Report.group_name, JobEntry.duration)
         .filter(JobEntry.duration.isnot(None), JobEntry.duration != "")
-        .group_by(Report.group_name)
         .all()
     )
+    team_durs = defaultdict(list)
+    for team, dur in team_dur_q:
+        if dur:
+            team_durs[team].append(dur)
     avg_dur_by_team = []
-    for team, durs_raw in team_dur_q:
-        durs = durs_raw.split("|") if durs_raw else []
+    for team, durs in team_durs.items():
         mins = [_parse_duration_minutes(d) for d in durs]
         valid = [m for m in mins if m is not None]
         avg = round(sum(valid) / len(valid), 1) if valid else 0
