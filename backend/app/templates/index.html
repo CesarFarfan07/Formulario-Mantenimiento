@@ -308,7 +308,51 @@
         </div>
     </div>
 
+    <!-- Edit Report Modal -->
+    <div class="modal fade" id="editReportModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content bg-dark border-info">
+                <div class="modal-header border-info py-2">
+                    <h6 class="modal-title text-info"><i class="bi bi-pencil-square"></i> Editar Reporte</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editReportId">
+                    <div class="mb-2">
+                        <label class="form-label small">Fecha</label>
+                        <input type="date" class="form-control" id="editReportDate">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Turno</label>
+                        <select class="form-control" id="editReportShift">
+                            <option value="">Seleccionar...</option>
+                            <option value="Día">Día</option>
+                            <option value="Noche">Noche</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Grupo</label>
+                        <select class="form-control" id="editReportGroup">
+                            <option value="">Seleccionar...</option>
+                            <option value="Trackless">Trackless</option>
+                            <option value="Convencional">Convencional</option>
+                            <option value="Eléctrico">Eléctrico</option>
+                        </select>
+                    </div>
+                    <hr class="border-secondary">
+                    <p class="text-muted small mb-2">Ingrese su DNI para confirmar</p>
+                    <input type="password" class="form-control mb-2" id="editPasswordInput" placeholder="DNI" onkeydown="if(event.key==='Enter') confirmEditReport()">
+                    <div id="editPasswordError" class="text-danger small d-none">Contraseña incorrecta</div>
+                </div>
+                <div class="modal-footer py-1">
+                    <button class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-sm btn-info" onclick="confirmEditReport()"><i class="bi bi-check-lg"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/app.js?v=6"></script>
+    <script src="/static/js/app.js?v=7"></script>
 </body>
 </html>

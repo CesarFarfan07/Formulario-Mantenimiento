@@ -331,7 +331,7 @@ def list_reports(
             dt = None
         if dt is not None:
             q = q.filter(
-                db.text("(created_at, id) < (:cd, :ci)").bindparams(cd=dt, ci=cursor_id)
+                _st("(created_at, id) < (:cd, :ci)").bindparams(cd=dt, ci=cursor_id)
             )
     reports = q.order_by(Report.created_at.desc(), Report.id.desc()).limit(limit + 1).all()
     has_more = len(reports) > limit
@@ -635,6 +635,24 @@ def verify_delete_password(password: str = Body(..., embed=True)):
     if password == DELETE_REPORT_PASSWORD:
         return {"ok": True}
     raise HTTPException(401, "Contraseña incorrecta")
+
+
+@app.put("/api/reports/{report_id}")
+def update_report(report_id: int, data: dict = Body(...), db: Session = Depends(get_db)):
+    if data.get("password") != DELETE_REPORT_PASSWORD:
+        raise HTTPException(401, "Contraseña incorrecta")
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(404, "Reporte no encontrado")
+    if "date" in data:
+        report.date = parse_date(data["date"])
+    if "shift" in data:
+        report.shift = data["shift"]
+    if "group_name" in data:
+        report.group_name = data["group_name"]
+    db.commit()
+    db.refresh(report)
+    return {"ok": True, "id": report.id}
 
 
 @app.post("/api/reports/{entry_id}/images")

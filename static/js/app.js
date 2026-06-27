@@ -1152,6 +1152,7 @@ function renderReportsTable(reports, container) {
             <td>${(rp.entries || []).length}</td>
             <td class="text-nowrap">
                 <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-sm btn-outline-warning" onclick="editReport(${rp.id})"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
             </td>
         </tr>`;
@@ -1185,6 +1186,7 @@ function appendReportsTable(newReports, container) {
             <td>🔧 ${(rp.entries || []).length}</td>
             <td class="text-nowrap">
                 <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-sm btn-outline-warning" onclick="editReport(${rp.id})"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
             </td>`;
         tbody.appendChild(tr);
@@ -1284,6 +1286,9 @@ async function viewReport(id) {
             <a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3">
                 <i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp
             </a>
+            <button onclick="editReportFromView(${r.id})" class="btn btn-outline-warning btn-sm px-3">
+                <i class="bi bi-pencil me-1"></i> Editar
+            </button>
             <button onclick="copyToClipboard('${waEncoded.replace(/'/g, "\\'")}')" class="btn btn-outline-secondary btn-sm px-3">
                 <i class="bi bi-clipboard me-1"></i> Copiar texto
             </button>
@@ -1546,4 +1551,61 @@ function updateBatchDeleteBtn() {
     } else {
         btn.classList.add('d-none');
     }
+}
+
+let _editReportData = null;
+
+function editReport(id) {
+    fetch(`/api/reports/${id}`)
+        .then(r => r.json())
+        .then(r => {
+            _editReportData = r;
+            document.getElementById('editReportId').value = r.id;
+            document.getElementById('editReportDate').value = r.date;
+            document.getElementById('editReportShift').value = r.shift || '';
+            document.getElementById('editReportGroup').value = r.group_name || '';
+            document.getElementById('editPasswordInput').value = '';
+            document.getElementById('editPasswordError').classList.add('d-none');
+            new bootstrap.Modal(document.getElementById('editReportModal')).show();
+        })
+        .catch(err => alert('Error al cargar reporte: ' + err.message));
+}
+
+async function confirmEditReport() {
+    const id = document.getElementById('editReportId').value;
+    const date = document.getElementById('editReportDate').value;
+    const shift = document.getElementById('editReportShift').value;
+    const group = document.getElementById('editReportGroup').value;
+    const password = document.getElementById('editPasswordInput').value;
+    if (!password) return;
+    if (!date) { alert('Debe seleccionar una fecha'); return; }
+    if (!shift) { alert('Debe seleccionar un turno'); return; }
+    if (!group) { alert('Debe seleccionar un grupo'); return; }
+    const btn = document.querySelector('#editReportModal .btn-info');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+    try {
+        const r = await fetch(`/api/reports/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password, date, shift, group_name: group }),
+        });
+        if (!r.ok) {
+            document.getElementById('editPasswordError').classList.remove('d-none');
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg"></i> Guardar';
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('editReportModal'))?.hide();
+        showToast('✅ Reporte #' + id + ' actualizado correctamente');
+        _editReportData = null;
+        loadRecentReports(20);
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg"></i> Guardar';
+    }
+}
+
+function editReportFromView(id) {
+    bootstrap.Modal.getInstance(document.getElementById('resultModal'))?.hide();
+    editReport(id);
 }
