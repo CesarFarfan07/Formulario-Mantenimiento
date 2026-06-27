@@ -546,7 +546,6 @@ function validarMedidor(input, label) {
                     };
                     const key = clsMap[cls];
                     if (key && data.readings[key] !== null && data.readings[key] !== undefined) {
-                        // Add small reference text
                         let ref = input.parentElement.querySelector('.last-reading-ref');
                         if (!ref) {
                             ref = document.createElement('small');
@@ -560,44 +559,6 @@ function validarMedidor(input, label) {
             })
             .catch(() => {});
     }
-
-    input.addEventListener('blur', async function() {
-        const val = parseFloat(this.value);
-        if (val === 0) {
-            alert(`No se puede reportar ${label} con valor 0.`);
-            this.value = '';
-            return;
-        }
-        const card = this.closest('.entry-card');
-        const equipoSub = card?.querySelector('.equipo-sub')?.value;
-        if (!equipoSub) return;
-        try {
-            const r = await fetch(`/api/equipment/${encodeURIComponent(equipoSub)}/last-reading`);
-            const data = await r.json();
-            if (data.found && data.readings) {
-                const cls = [...this.classList].find(c => c.startsWith('horometro-') || c === 'kilometraje');
-                const clsMap = {
-                    'horometro-motor': 'horometer_motor',
-                    'horometro-jumbo': 'horometer_motor_jumbo',
-                    'horometro-volquetes': 'horometer_motor_volquetes',
-                    'horometro-electrico': 'horometer_electric',
-                    'horometro-percusion': 'horometer_percussion',
-                    'kilometraje': 'kilometer',
-                };
-                const key = clsMap[cls];
-                if (key && data.readings[key] !== null && data.readings[key] !== undefined) {
-                    const lastVal = data.readings[key];
-                    if (val <= lastVal) {
-                        // Skip "must be greater" check if same equipment (copied from previous entry)
-                        if (!card?.dataset?.sameEquipo) {
-                            alert(`El valor (${val}) debe ser mayor que la última lectura registrada (${lastVal}) para este equipo.`);
-                            this.value = '';
-                        }
-                    }
-                }
-            }
-        } catch (_) {}
-    });
 }
 
 function calcularDuracion(startInp, endInp, durInp) {
