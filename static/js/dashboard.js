@@ -51,14 +51,20 @@ function getFilterParams() {
 
 function setDefaultDates() {
     const today = new Date();
-    const first = new Date(today.getFullYear(), today.getMonth(), 1);
-    document.getElementById('filterFrom').value = first.toISOString().split('T')[0];
-    document.getElementById('filterTo').value = today.toISOString().split('T')[0];
-    // Default compare = previous month
-    const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const prevMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
-    document.getElementById('cmpFrom').value = prevMonth.toISOString().split('T')[0];
-    document.getElementById('cmpTo').value = prevMonthEnd.toISOString().split('T')[0];
+    let periodStart;
+    if (today.getDate() >= 26) {
+        periodStart = new Date(today.getFullYear(), today.getMonth(), 26);
+    } else {
+        periodStart = new Date(today.getFullYear(), today.getMonth() - 1, 26);
+    }
+    const periodEnd = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 25);
+    document.getElementById('filterFrom').value = periodStart.toISOString().split('T')[0];
+    document.getElementById('filterTo').value = periodEnd.toISOString().split('T')[0];
+    // Previous period
+    const prevEnd = new Date(periodStart.getFullYear(), periodStart.getMonth(), 25);
+    const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth() - 1, 26);
+    document.getElementById('cmpFrom').value = prevStart.toISOString().split('T')[0];
+    document.getElementById('cmpTo').value = prevEnd.toISOString().split('T')[0];
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────

@@ -1100,10 +1100,16 @@ def dashboard_summary(
 ):
     try:
         today = date.today()
-        if not date_from:
-            date_from = today.replace(day=1).isoformat()
-        if not date_to:
-            date_to = today.isoformat()
+        if not date_from or not date_to:
+            if today.day >= 26:
+                period_start = today.replace(day=26)
+            else:
+                period_start = (today.replace(day=1) - timedelta(days=1)).replace(day=26)
+            period_end = (period_start + timedelta(days=32)).replace(day=25)
+            if not date_from:
+                date_from = period_start.isoformat()
+            if not date_to:
+                date_to = period_end.isoformat()
 
         period_label = f"{parse_date(date_from).strftime('%d/%m/%Y')} – {parse_date(date_to).strftime('%d/%m/%Y')}"
 
