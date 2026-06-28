@@ -130,7 +130,7 @@ function renderKPIs(current, comparison) {
     document.getElementById('kpiRow').innerHTML = cards.map((c, i) => {
         const d = cmp ? delta(k[c.key] || 0, cmp[c.key] || 0, c.reverse) : { cls: '', text: '' };
         return `<div class="col-6 col-md-3 col-xl anim-card">
-            <div class="glass kpi-card ${c.border}">
+            <div class="glass kpi-card ${c.border}" onclick="showKpiDetail('${c.key}')" style="cursor:pointer;">
                 <div class="kpi-icon ${c.bg}"><i class="bi ${c.icon}"></i></div>
                 <div class="kpi-value" style="color:${c.color};" data-val="${c.value}">0</div>
                 <div class="kpi-label">${c.label}</div>
@@ -572,6 +572,41 @@ function renderOKRs(okrs) {
     requestAnimationFrame(() => {
         container.querySelectorAll('.progress-okr .bar').forEach(b => { b.style.width = '0%'; setTimeout(() => { b.style.width = b.dataset.w + '%'; }, 200); });
     });
+}
+
+// ─── KPI Detail Drill-down ──────────────────────────────────────────────────
+
+function showKpiDetail(kpiKey) {
+    const params = getFilterParams();
+    const qs = new URLSearchParams();
+    qs.set('kpi', kpiKey);
+    Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, v); });
+
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('resultModal'));
+    const modalBody = document.getElementById('resultModalBody');
+    const modalTitle = document.getElementById('resultModalTitle');
+    modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-info"></div><p class="mt-2 text-muted">Cargando detalle...</p></div>';
+    modalTitle.textContent = 'Detalle';
+    modal.show();
+
+    fetch(`/api/dashboard/kpi-detail?${qs}`)
+        .then(r => { if (!r.ok) throw new Error('Error al cargar detalle'); return r.json(); })
+        .then(data => {
+            let html = `<h6 class="mb-3 text-info">${data.title}</h6>`;
+            html += `<div class="table-responsive" style="max-height:400px;overflow-y:auto;">`;
+            html += `<table class="table table-sm table-dark table-hover mb-0"><thead><tr>`;
+            data.headers.forEach(h => { html += `<th>${h}</th>`; });
+            html += `</tr></thead><tbody>`;
+            data.rows.forEach(r => {
+                html += `<tr>${r.map(c => `<td>${c ?? '—'}</td>`).join('')}</tr>`;
+            });
+            html += `</tbody></table></div>`;
+            html += `<p class="text-muted small mt-2 mb-0">Total: ${data.rows.length} registro(s)</p>`;
+            modalBody.innerHTML = html;
+        })
+        .catch(err => {
+            modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+        });
 }
 
 // ─── Init ───────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, contains_eager
 
 from sqlalchemy import func as _sf, text as _st
 
@@ -794,7 +794,7 @@ def _parse_duration_minutes(dur):
 
 def _build_filtered_query(db, date_from, date_to, group):
     """Return a base query of JobEntry joined to Report with filters applied."""
-    q = db.query(JobEntry).join(Report)
+    q = db.query(JobEntry).join(JobEntry.report).options(contains_eager(JobEntry.report))
     if date_from:
         q = q.filter(Report.date >= parse_date(date_from))
     if date_to:
@@ -1136,6 +1136,77 @@ def dashboard_summary(
         import traceback
         traceback.print_exc()
         raise HTTPException(500, f"Error generando dashboard: {exc}")
+
+
+@app.get("/api/dashboard/kpi-detail")
+def kpi_detail(
+    kpi: str = Query(...),
+    date_from: str = Query(None),
+    date_to: str = Query(None),
+    group: str = Query(None),
+    db: Session = Depends(get_db),
+):
+    try:
+        q_base = _build_filtered_query(db, date_from, date_to, group)
+        if kpi in ("pm_pct", "cm_pct"):
+            action_filter = "Preventivo" if kpi == "pm_pct" else "Correctivo"
+            rows = q_base.filter(JobEntry.action.ilike(f"%{action_filter}%")).order_by(JobEntry.id.desc()).limit(200).all()
+            return {
+                "title": f"Trabajos con acción «{action_filter}»",
+                "headers": ["#", "Fecha", "Grupo", "Macroproceso", "Tipo", "Acción", "Equipo", "Duración"],
+                "rows": [["N/A", str(e.report.date), e.report.group_name, e.macroprocess, e.work_type, e.action, e.equipment, e.duration] for e in rows],
+            }
+        if kpi == "worker_count":
+            rows = (
+                db.query(Worker.id, Worker.name, Worker.group_name)
+                .join(Report)
+            )
+            if date_from:
+                rows = rows.filter(Report.date >= parse_date(date_from))
+            if date_to:
+                rows = rows.filter(Report.date <= parse_date(date_to))
+            if group:
+                rows = rows.filter(Report.group_name == group)
+            rows = rows.distinct().order_by(Worker.name).all()
+            return {
+                "title": "Trabajadores que reportaron",
+                "headers": ["ID", "Nombre", "Grupo"],
+                "rows": [[w.id, w.name, w.group_name] for w in rows],
+            }
+        if kpi == "collaborator_count":
+            rows = q_base.filter(JobEntry.collaborators.isnot(None)).order_by(JobEntry.id.desc()).limit(300).all()
+            names = set()
+            data = []
+            for e in rows:
+                if e.collaborators:
+                    for n in e.collaborators.split(","):
+                        n = n.strip()
+                        if n and n not in names:
+                            names.add(n)
+                            data.append([len(data) + 1, n])
+            return {
+                "title": "Colaboradores únicos en labor",
+                "headers": ["#", "Nombre"],
+                "rows": data,
+            }
+        if kpi == "total_hours":
+            rows = q_base.filter(JobEntry.duration.isnot(None), JobEntry.duration != "").order_by(JobEntry.id.desc()).limit(300).all()
+            return {
+                "title": "Detalle de horas hombre",
+                "headers": ["#", "Fecha", "Grupo", "Macroproceso", "Equipo", "Duración"],
+                "rows": [[i + 1, str(e.report.date), e.report.group_name, e.macroprocess, e.equipment, e.duration] for i, e in enumerate(rows)],
+            }
+        # Default: list job entries (total_jobs, avg_duration_min, etc.)
+        rows = q_base.order_by(JobEntry.id.desc()).limit(300).all()
+        return {
+            "title": "Todos los trabajos del período",
+            "headers": ["#", "Fecha", "Grupo", "Macroproceso", "Tipo", "Acción", "Equipo", "Duración"],
+            "rows": [[i + 1, str(e.report.date), e.report.group_name, e.macroprocess, e.work_type, e.action, e.equipment, e.duration] for i, e in enumerate(rows)],
+        }
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Error obteniendo detalle: {exc}")
 
 
 # ─── Admin routes ─────────────────────────────────────────────────────────────

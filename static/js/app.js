@@ -1004,7 +1004,7 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         });
         renumberEntries();
         updateRemoveButtons();
-
+        loadRecentReports(20);
     } catch (err) {
         showModal('Error', `<div class="alert alert-danger">Error al enviar: ${err.message}</div>`);
     } finally {
@@ -1083,6 +1083,7 @@ function renderReportsTable(reports, container) {
         _searchHasMore = false;
         return;
     }
+    window._allReports = reports.slice();
 
     let html = `<div class="d-flex justify-content-between align-items-center mb-2">
         <div>
@@ -1090,33 +1091,39 @@ function renderReportsTable(reports, container) {
         </div>
         <label class="text-muted small"><input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll()"> Seleccionar todo</label>
     </div>`;
-    html += `<div class="table-responsive"><table class="table table-sm table-hover">
+    html += `<div class="table-responsive"><table class="table table-sm table-hover mb-1" style="min-width:600px;">
         <thead><tr class="table-dark">
-            <th style="width:30px"></th><th>#</th><th>📅 Fecha</th><th>🌓 Turno</th><th>👥 Grupo</th>
-            <th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
+            <th style="width:30px"></th><th>#</th><th>🌓 Turno</th><th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
         </tr></thead><tbody>`;
 
-    for (const rp of reports) {
-        const colabs = [];
-        if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
-        if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
-        if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
-        const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
-
-        html += `<tr>
-            <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
-            <td>${rp.id}</td>
-            <td>${formatDate(rp.date)}</td>
-            <td>${rp.shift}</td>
-            <td>${rp.group_name}</td>
-            <td title="${colabs.join(', ')}">${colabText}</td>
-            <td>${(rp.entries || []).length}</td>
-            <td class="text-nowrap">
-                <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
-                <button class="btn btn-sm btn-outline-warning" onclick="editReport(${rp.id})"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
-            </td>
-        </tr>`;
+    const grouped = groupReports(reports);
+    let firstGroup = true;
+    for (const [group, dates] of grouped) {
+        if (!firstGroup) html += `<tr class="separator-row"><td colspan="6" style="padding:4px 0;"></td></tr>`;
+        firstGroup = false;
+        html += `<tr class="group-header"><td colspan="6">👥 ${group}</td></tr>`;
+        for (const [dateStr, dateReports] of dates) {
+            html += `<tr class="date-subheader"><td colspan="6">📅 ${formatDate(dateStr)} (${dateReports.length})</td></tr>`;
+            for (const rp of dateReports) {
+                const colabs = [];
+                if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
+                if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
+                if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
+                const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
+                html += `<tr>
+                    <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
+                    <td>${rp.id}</td>
+                    <td>${rp.shift}</td>
+                    <td title="${colabs.join(', ')}">${colabText}</td>
+                    <td>${(rp.entries || []).length}</td>
+                    <td class="text-nowrap">
+                        <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="editReport(${rp.id})"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>`;
+            }
+        }
     }
     html += '</tbody></table></div>';
 
@@ -1128,46 +1135,31 @@ function renderReportsTable(reports, container) {
 }
 
 function appendReportsTable(newReports, container) {
-    const tbody = container.querySelector('table tbody');
-    if (!tbody) { renderReportsTable(newReports, container); return; }
-    for (const rp of newReports) {
-        const colabs = [];
-        if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
-        if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
-        if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
-        const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
-            <td>${rp.id}</td>
-            <td>📅 ${formatDate(rp.date)}</td>
-            <td>🌓 ${rp.shift}</td>
-            <td>👥 ${rp.group_name}</td>
-            <td title="${colabs.join(', ')}">${colabText}</td>
-            <td>🔧 ${(rp.entries || []).length}</td>
-            <td class="text-nowrap">
-                <button class="btn btn-sm btn-outline-info" onclick="viewReport(${rp.id})"><i class="bi bi-eye"></i></button>
-                <button class="btn btn-sm btn-outline-warning" onclick="editReport(${rp.id})"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteReport(${rp.id})"><i class="bi bi-trash"></i></button>
-            </td>`;
-        tbody.appendChild(tr);
+    if (window._allReports) {
+        window._allReports = window._allReports.concat(newReports);
+    } else {
+        window._allReports = newReports.slice();
     }
-    // Update "Ver más" button
-    let moreDiv = container.querySelector('.text-center.mt-2');
-    if (_searchHasMore) {
-        const count = container.querySelectorAll('table tbody tr').length;
-        if (moreDiv) {
-            moreDiv.remove();
-        }
-        const d = document.createElement('div');
-        d.className = 'text-center mt-2';
-        d.innerHTML = `<button class="btn btn-outline-light btn-sm" onclick="loadMoreReports()"><i class="bi bi-plus-circle"></i> Ver más</button>`;
-        container.appendChild(d);
-        const p = container.querySelector('.text-muted.small.mt-1');
-        if (p) p.textContent = `Mostrando ${count} reporte(s)`;
-    } else if (moreDiv) {
-        moreDiv.remove();
+    renderReportsTable(window._allReports, container);
+}
+
+function groupReports(reports) {
+    const map = new Map();
+    for (const rp of reports) {
+        const g = rp.group_name || 'Sin grupo';
+        const d = rp.date;
+        if (!map.has(g)) map.set(g, new Map());
+        const dates = map.get(g);
+        if (!dates.has(d)) dates.set(d, []);
+        dates.get(d).push(rp);
     }
+    const sorted = new Map();
+    [...map.keys()].sort().forEach(g => {
+        const dates = map.get(g);
+        const sortedDates = new Map([...dates.entries()].sort((a, b) => b[0].localeCompare(a[0])));
+        sorted.set(g, sortedDates);
+    });
+    return sorted;
 }
 
 function loadMoreReports() {
