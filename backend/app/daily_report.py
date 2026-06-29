@@ -4,10 +4,10 @@ preserving all images, merged cells, colors, and formatting.
 """
 
 import os
-import shutil
+import io
 from datetime import date
 from typing import List, Optional
-from openpyxl import load_workbook
+from openpyxl import load_workbook as _load_wb
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.drawing.image import Image as XlImage
 
@@ -18,8 +18,6 @@ from .excel_export import (
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_DIR = os.path.join(BASE_DIR, "app", "templates")
-REPORTS_DIR = os.path.join(os.path.dirname(BASE_DIR), "static", "daily_reports")
-os.makedirs(REPORTS_DIR, exist_ok=True)
 
 TEMPLATE_PATH = os.path.join(TEMPLATE_DIR, "Reporte_Diario_Mantt.xlsx")
 FOOTER_IMAGE_PATH = os.path.join(TEMPLATE_DIR, "firma_footer.png")
@@ -42,11 +40,11 @@ def _copy_sheet(wb, template_ws, new_title, idx):
 
 
 def _ensure_data_rows(ws, needed: int):
-    """Insert extra rows if more than 10 data rows are needed; return count of inserted rows."""
+    """Insert extra rows if more than 10 data rows are needed."""
     data_start = 15
     template_count = 10
     if needed <= template_count:
-        return 0
+        return
     extra = needed - template_count
     ws.insert_rows(25, extra)
     for i in range(template_count, needed):
@@ -54,32 +52,24 @@ def _ensure_data_rows(ws, needed: int):
         ws.row_dimensions[row].height = 50
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=5)
         ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=17)
-    return extra
 
 
 def _calc_row_height(d: dict) -> float:
-    """Estimate row height based on content lines."""
     max_lines = 1
-    # Trabajadores: each name is a line
     names = [n for n in d.get("trabajadores", []) if n]
     if names:
         max_lines = max(max_lines, len(names))
-    # Actividades: rough estimate of line breaks
     acts = d.get("actividades", "") or ""
     if acts:
         max_lines = max(max_lines, len(acts) // 40 + 1)
-    # Macro / tipo_servicio / accion
     for key in ("macro", "tipo_servicio", "accion"):
         val = d.get(key, "") or ""
         if len(val) > 35:
             max_lines = max(max_lines, len(val) // 35 + 1)
-    # Cap at reasonable max
     return min(max(max_lines * 16, 50), 200)
 
 
 def _populate_data(ws, data_rows: list, header_info: dict):
-    """Customize header cells and fill data rows."""
-
     ws["B6"].value = "FECHA:"
     ws["D6"].value = header_info["date"]
     ws["B7"].value = "TURNO"
@@ -89,19 +79,13 @@ def _populate_data(ws, data_rows: list, header_info: dict):
 
     num_rows = max(len(data_rows), 10)
 
-    # Remove any extra rows left from previous copies (beyond needed count)
-    # Template has 10 data rows (15-24). If previous copies inserted extra rows,
-    # they persist in the template; after copying, we trim them out.
-    max_template_rows = 24  # original end row
+    # Remove extra rows left from previous template copies
     current_max = ws.max_row
-    if current_max > max_template_rows + 1:
-        rows_to_delete = current_max - max_template_rows
-        ws.delete_rows(max_template_rows + 1, rows_to_delete)
+    if current_max > 25:
+        ws.delete_rows(25, current_max - 24)
 
-    # Remove any pre-existing extra row merges (rows beyond 24)
     from openpyxl.utils import range_boundaries
-    existing_merges = list(ws.merged_cells.ranges)
-    for merge_range in existing_merges:
+    for merge_range in list(ws.merged_cells.ranges):
         min_col, min_row, max_col, max_row = range_boundaries(str(merge_range))
         if min_row > 24:
             ws.unmerge_cells(str(merge_range))
@@ -167,12 +151,29 @@ def _populate_data(ws, data_rows: list, header_info: dict):
         c.number_format = '0'
 
 
-def generate_daily_report(target_date: date, reports_data: dict) -> str:
-    """Build daily report from the reference template."""
+def _add_footer_images(wb, sheet_num_rows: dict):
+    if not os.path.exists(FOOTER_IMAGE_PATH):
+        return
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        n = sheet_num_rows.get(sheet_name, 0)
+        footer_row = max(28, 15 + max(n, 10) + 1)
+        try:
+            img = XlImage(FOOTER_IMAGE_PATH)
+            img.anchor = f"A{footer_row}"
+            img.width = 2351
+            img.height = 47
+            ws.add_image(img)
+        except Exception:
+            pass
+
+
+def _build_workbook(target_date: date, reports_data: dict):
+    """Build workbook in memory and return (workbook, output_filename)."""
     if not os.path.exists(TEMPLATE_PATH):
         raise FileNotFoundError(f"Template no encontrado: {TEMPLATE_PATH}")
 
-    wb = load_workbook(TEMPLATE_PATH)
+    wb = _load_wb(TEMPLATE_PATH)
     template_ws = wb["Report_Diario"]
 
     groups = ["Mantt. Eq. Trackless", "Mantt. Eq. Convencional", "Mantt. Eq. Electrico"]
@@ -181,7 +182,6 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
     date_str = target_date.strftime("%d/%m/%Y")
     short_date = target_date.strftime("%d%m%Y")
 
-    # Rename template so it stays pristine for copying
     template_ws.title = "__template__"
     src_ws = wb["__template__"]
 
@@ -250,15 +250,9 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
             safe_group = group.replace("Mantt. Eq. ", "").replace(" ", "_")
             sheet_name = f"{safe_group}_{shift}_{short_date}"[:31]
 
-            header_info = {
-                "date": date_str,
-                "shift": shift,
-                "group_name": group,
-            }
+            header_info = {"date": date_str, "shift": shift, "group_name": group}
 
-            # Always copy from pristine template (never modify src_ws)
             ws = _copy_sheet(wb, src_ws, sheet_name, sheet_count)
-
             _populate_data(ws, all_entries, header_info)
             sheet_names.append(sheet_name)
             sheet_num_rows[sheet_name] = len(all_entries)
@@ -269,44 +263,49 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
         _populate_data(ws, [], {"date": date_str, "shift": "", "group_name": "Sin datos"})
         sheet_names.append(ws.title)
         sheet_num_rows[ws.title] = 0
-        sheet_count = 1
 
-    # Remove the pristine template
     del wb["__template__"]
-
-    # Remove any leftover sheets
     for name in list(wb.sheetnames):
         if name not in sheet_names:
             del wb[name]
 
-    # ── Add footer signature image to all sheets ──
-    if os.path.exists(FOOTER_IMAGE_PATH):
-        for sheet_name in wb.sheetnames:
-            ws = wb[sheet_name]
-            n = sheet_num_rows.get(sheet_name, 0)
-            footer_row = max(28, 15 + max(n, 10) + 1)
-            try:
-                img = XlImage(FOOTER_IMAGE_PATH)
-                img.anchor = f"A{footer_row}"
-                img.width = 2351
-                img.height = 47
-                ws.add_image(img)
-            except Exception:
-                pass
+    _add_footer_images(wb, sheet_num_rows)
 
-    output_path = os.path.join(REPORTS_DIR, f"Reporte_Diario_{target_date.isoformat()}.xlsx")
+    output_filename = f"Reporte_Diario_{target_date.isoformat()}.xlsx"
+    return wb, output_filename
+
+
+def generate_daily_report(target_date: date, reports_data: dict) -> str:
+    """Build daily report, save to disk, return file path."""
+    ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
+    reports_dir = os.path.join(ROOT, "static", "daily_reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    wb, fname = _build_workbook(target_date, reports_data)
+    output_path = os.path.join(reports_dir, fname)
     wb.save(output_path)
     wb.close()
     return output_path
 
 
+def generate_daily_report_bytes(target_date: date, reports_data: dict) -> io.BytesIO:
+    """Build daily report into a BytesIO buffer (no disk write)."""
+    wb, _ = _build_workbook(target_date, reports_data)
+    buf = io.BytesIO()
+    wb.save(buf)
+    wb.close()
+    buf.seek(0)
+    return buf
+
+
 def list_daily_reports() -> List[dict]:
+    ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
+    reports_dir = os.path.join(ROOT, "static", "daily_reports")
     reports = []
-    if not os.path.isdir(REPORTS_DIR):
+    if not os.path.isdir(reports_dir):
         return reports
-    for fname in sorted(os.listdir(REPORTS_DIR), reverse=True):
+    for fname in sorted(os.listdir(reports_dir), reverse=True):
         if fname.startswith("Reporte_Diario_") and fname.endswith(".xlsx"):
-            path = os.path.join(REPORTS_DIR, fname)
+            path = os.path.join(reports_dir, fname)
             size = os.path.getsize(path)
             date_str = fname.replace("Reporte_Diario_", "").replace(".xlsx", "")
             reports.append({

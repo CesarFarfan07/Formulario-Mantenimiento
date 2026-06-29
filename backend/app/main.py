@@ -17,7 +17,7 @@ from sqlalchemy import func as _sf, text as _st
 
 from .database import engine, get_db, Base, SessionLocal
 from .excel_export import build_excel
-from .daily_report import generate_daily_report, list_daily_reports, REPORTS_DIR
+from .daily_report import generate_daily_report, generate_daily_report_bytes, list_daily_reports
 from .models import Worker, Report, JobEntry, JobImage
 from .models import EquipmentCategory, EquipmentSubitem, Collaborator, Macroprocess, WorkType, Action, Nivel, Turno
 from .schemas import (
@@ -494,9 +494,11 @@ def export_reports_csv(
 # ─── Daily Report Endpoints ─────────────────────────────────────────────────
 
 @app.get("/api/daily-reports")
-def get_daily_reports():
-    """List existing daily reports."""
-    return list_daily_reports()
+def get_daily_reports(db: Session = Depends(get_db)):
+    """List dates with available reports (from DB)."""
+    from sqlalchemy import func as _sf
+    rows = db.query(Report.date).distinct().order_by(Report.date.desc()).all()
+    return [{"date": r[0].isoformat() if hasattr(r[0], 'isoformat') else str(r[0])} for r in rows]
 
 
 @app.post("/api/daily-reports/generate")
@@ -553,9 +555,19 @@ def generate_daily(target_date: str = Body("", embed=True), db: Session = Depend
             } for e in rp.entries],
         })
 
-    filepath = generate_daily_report(d, grouped)
-    fname = os.path.basename(filepath)
-    return {"ok": True, "filename": fname, "path": f"/static/daily_reports/{fname}"}
+    return _stream_report(d, grouped)
+
+
+def _stream_report(d: date, grouped: dict):
+    """Generate report in memory and return as file download response."""
+    from fastapi.responses import StreamingResponse
+    buf = generate_daily_report_bytes(d, grouped)
+    fname = f"Reporte_Diario_{d.isoformat()}.xlsx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={fname}"},
+    )
 
 
 @app.get("/api/reports/{report_id}")

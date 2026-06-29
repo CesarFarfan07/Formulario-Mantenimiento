@@ -1380,18 +1380,17 @@ async function loadDailyReports() {
     const container = document.getElementById('dailyReportsList');
     try {
         const r = await fetch('/api/daily-reports');
-        const reports = await r.json();
-        if (!reports.length) {
-            container.innerHTML = '<p class="text-muted">No hay reportes diarios generados.</p>';
+        const dates = await r.json();
+        if (!dates.length) {
+            container.innerHTML = '<p class="text-muted">No hay fechas con reportes.</p>';
             return;
         }
-        let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr class="table-dark"><th>📅 Fecha</th><th>📄 Archivo</th><th>📦 Tamaño</th><th></th></tr></thead><tbody>';
-        for (const rp of reports) {
+        let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr class="table-dark"><th>📅 Fecha</th><th></th></tr></thead><tbody>';
+        for (const item of dates) {
+            const d = item.date;
             html += `<tr>
-                <td>${rp.date}</td>
-                <td>${rp.filename}</td>
-                <td>${rp.size_str}</td>
-                <td><a href="/static/daily_reports/${rp.filename}" class="btn btn-sm btn-success"><i class="bi bi-download"></i></a></td>
+                <td>${d}</td>
+                <td class="text-end"><button class="btn btn-sm btn-success" onclick="downloadDailyReport('${d}')"><i class="bi bi-download"></i> Descargar</button></td>
             </tr>`;
         }
         html += '</tbody></table></div>';
@@ -1401,8 +1400,38 @@ async function loadDailyReports() {
     }
 }
 
+async function downloadDailyReport(dateStr) {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    try {
+        const r = await fetch('/api/daily-reports/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target_date: dateStr }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Diario_${dateStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ Descarga iniciada');
+    } catch (err) {
+        alert('Error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-download"></i> Descargar';
+    }
+}
+
 async function generateDailyReport() {
     const dateInput = document.getElementById('dailyReportDate').value;
+    if (!dateInput) { alert('Selecciona una fecha'); return; }
     const btn = document.querySelector('#dailyReportsPanel .btn-primary');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generando...';
@@ -1412,23 +1441,24 @@ async function generateDailyReport() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ target_date: dateInput }),
         });
-        const data = await r.json();
-        if (r.ok) {
-            showModal('Reporte Generado', `
-                <div class="alert alert-success">
-                    Reporte generado: <strong>${data.filename}</strong>
-                </div>
-                <a href="${data.path}" class="btn btn-success"><i class="bi bi-download"></i> Descargar</a>
-            `);
-            loadDailyReports();
-        } else {
-            showModal('Error', `<div class="alert alert-danger">${data.detail || 'Error'}</div>`);
-        }
+        if (!r.ok) throw new Error(await r.text());
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Diario_${dateInput}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('✅ Reporte generado y descargado');
+        loadDailyReports();
     } catch (err) {
         showModal('Error', `<div class="alert alert-danger">${err.message}</div>`);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-plus"></i> Generar Reporte';
     }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-file-earmark-excel"></i> Generar Reporte';
 }
 
 // ─── DELETE REPORTS ────────────────────────────────────────────────────
