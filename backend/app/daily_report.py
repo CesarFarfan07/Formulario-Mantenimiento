@@ -5,6 +5,7 @@ preserving all images, merged cells, colors, and formatting.
 
 import os
 import io
+import copy as _copy
 from datetime import date
 from typing import List, Optional
 from openpyxl import load_workbook as _load_wb
@@ -31,12 +32,37 @@ ROW_EVEN_FILL = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type=
 
 
 def _copy_sheet(wb, template_ws, new_title, idx):
-    """Copy worksheet preserving images and all content."""
+    """Copy worksheet (copy_worksheet does NOT copy images)."""
     new_ws = wb.copy_worksheet(template_ws)
     new_ws.title = new_title
     if idx != wb.index(new_ws):
         wb.move_sheet(new_ws, offset=idx - wb.index(new_ws))
     return new_ws
+
+
+def _collect_images(ws):
+    """Extract (image_bytes, anchor_string, width, height) from a worksheet."""
+    items = []
+    for img in getattr(ws, '_images', []) or []:
+        try:
+            data = img._data()
+            items.append((data, str(img.anchor), img.width, img.height))
+        except Exception:
+            pass
+    return items
+
+
+def _restore_images(ws, items):
+    """Add previously collected images to a worksheet."""
+    for data_bytes, anchor_str, width, height in items:
+        try:
+            img = XlImage(io.BytesIO(data_bytes))
+            img.anchor = anchor_str
+            img.width = width
+            img.height = height
+            ws.add_image(img)
+        except Exception:
+            pass
 
 
 def _ensure_data_rows(ws, needed: int):
@@ -185,6 +211,9 @@ def _build_workbook(target_date: date, reports_data: dict):
     template_ws.title = "__template__"
     src_ws = wb["__template__"]
 
+    # Collect template images BEFORE any modifications (copy_worksheet loses them)
+    template_images = _collect_images(src_ws)
+
     sheet_count = 0
     sheet_names = []
     sheet_num_rows = {}
@@ -268,6 +297,10 @@ def _build_workbook(target_date: date, reports_data: dict):
     for name in list(wb.sheetnames):
         if name not in sheet_names:
             del wb[name]
+
+    # Restore template images (logo, etc.) to all sheets
+    for sheet_name in wb.sheetnames:
+        _restore_images(wb[sheet_name], template_images)
 
     _add_footer_images(wb, sheet_num_rows)
 
