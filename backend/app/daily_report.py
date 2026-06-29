@@ -36,32 +36,50 @@ def _copy_sheet(wb, template_ws, new_title, idx):
     """Copy worksheet preserving images and all content."""
     new_ws = wb.copy_worksheet(template_ws)
     new_ws.title = new_title
-    # Move to correct position
     if idx != wb.index(new_ws):
         wb.move_sheet(new_ws, offset=idx - wb.index(new_ws))
     return new_ws
 
 
 def _ensure_data_rows(ws, needed: int):
-    """Insert extra rows if more than 10 data rows are needed."""
+    """Insert extra rows if more than 10 data rows are needed; return count of inserted rows."""
     data_start = 15
-    template_count = 10  # rows 15–24 in template
+    template_count = 10
     if needed <= template_count:
-        return
+        return 0
     extra = needed - template_count
-    # Insert rows at position 25 (after the 10 template data rows)
     ws.insert_rows(25, extra)
-    # Add merged cells and row dimensions for the new rows
     for i in range(template_count, needed):
         row = data_start + i
         ws.row_dimensions[row].height = 50
         ws.merge_cells(start_row=row, start_column=2, end_row=row, end_column=5)
         ws.merge_cells(start_row=row, start_column=9, end_row=row, end_column=17)
+    return extra
+
+
+def _calc_row_height(d: dict) -> float:
+    """Estimate row height based on content lines."""
+    max_lines = 1
+    # Trabajadores: each name is a line
+    names = [n for n in d.get("trabajadores", []) if n]
+    if names:
+        max_lines = max(max_lines, len(names))
+    # Actividades: rough estimate of line breaks
+    acts = d.get("actividades", "") or ""
+    if acts:
+        max_lines = max(max_lines, len(acts) // 40 + 1)
+    # Macro / tipo_servicio / accion
+    for key in ("macro", "tipo_servicio", "accion"):
+        val = d.get(key, "") or ""
+        if len(val) > 35:
+            max_lines = max(max_lines, len(val) // 35 + 1)
+    # Cap at reasonable max
+    return min(max(max_lines * 16, 50), 200)
 
 
 def _populate_data(ws, data_rows: list, header_info: dict):
     """Customize header cells and fill data rows."""
-    # ── Customize header cells ──
+
     ws["B6"].value = "FECHA:"
     ws["D6"].value = header_info["date"]
     ws["B7"].value = "TURNO"
@@ -70,15 +88,31 @@ def _populate_data(ws, data_rows: list, header_info: dict):
     ws["D10"].value = header_info["group_name"]
 
     num_rows = max(len(data_rows), 10)
+
+    # Remove any extra rows left from previous copies (beyond needed count)
+    # Template has 10 data rows (15-24). If previous copies inserted extra rows,
+    # they persist in the template; after copying, we trim them out.
+    max_template_rows = 24  # original end row
+    current_max = ws.max_row
+    if current_max > max_template_rows + 1:
+        rows_to_delete = current_max - max_template_rows
+        ws.delete_rows(max_template_rows + 1, rows_to_delete)
+
+    # Remove any pre-existing extra row merges (rows beyond 24)
+    from openpyxl.utils import range_boundaries
+    existing_merges = list(ws.merged_cells.ranges)
+    for merge_range in existing_merges:
+        min_col, min_row, max_col, max_row = range_boundaries(str(merge_range))
+        if min_row > 24:
+            ws.unmerge_cells(str(merge_range))
+
     _ensure_data_rows(ws, num_rows)
 
     data_start = 15
-    # ── Clear and fill data rows ──
     for i in range(num_rows):
         row = data_start + i
         ws.row_dimensions[row].height = 50
 
-        # Clear the row (skip MergedCell)
         for col in range(1, 24):
             c = ws.cell(row=row, column=col)
             from openpyxl.cell.cell import MergedCell
@@ -97,13 +131,12 @@ def _populate_data(ws, data_rows: list, header_info: dict):
 
             names = [n for n in d.get("trabajadores", []) if n]
             if names:
-                ws.cell(row=row, column=2).value = "\n".join(f"{i+1}. {n}" for i, n in enumerate(names))
+                ws.cell(row=row, column=2).value = "\n".join(f"{j+1}. {n}" for j, n in enumerate(names))
 
             ws.cell(row=row, column=6).value = d.get("macro", "")
             ws.cell(row=row, column=7).value = d.get("tipo_servicio", "")
             ws.cell(row=row, column=8).value = d.get("accion", "")
             ws.cell(row=row, column=9).value = d.get("actividades", "")
-            # Swap: R(18) = equipo, S(19) = equipo_interv
             ws.cell(row=row, column=18).value = d.get("equipo", "")
             ws.cell(row=row, column=19).value = d.get("equipo_interv", "")
 
@@ -113,6 +146,8 @@ def _populate_data(ws, data_rows: list, header_info: dict):
 
             ws.cell(row=row, column=22).value = d.get("nivel", "")
             ws.cell(row=row, column=23).value = d.get("labor", "")
+
+            ws.row_dimensions[row].height = _calc_row_height(d)
 
         for col in range(1, 24):
             c = ws.cell(row=row, column=col)
@@ -137,7 +172,6 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
     if not os.path.exists(TEMPLATE_PATH):
         raise FileNotFoundError(f"Template no encontrado: {TEMPLATE_PATH}")
 
-    # Load the template workbook (preserves images, drawings, etc.)
     wb = load_workbook(TEMPLATE_PATH)
     template_ws = wb["Report_Diario"]
 
@@ -145,10 +179,15 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
     shifts = ["Día", "Noche"]
     shift_aliases = {"Día": ["Día", "Dia", "dia", "día"], "Noche": ["Noche", "noche"]}
     date_str = target_date.strftime("%d/%m/%Y")
+    short_date = target_date.strftime("%d%m%Y")
+
+    # Rename template so it stays pristine for copying
+    template_ws.title = "__template__"
+    src_ws = wb["__template__"]
 
     sheet_count = 0
     sheet_names = []
-    sheet_num_rows = {}  # sheet_name -> number of data rows
+    sheet_num_rows = {}
 
     for group in groups:
         for shift in shifts:
@@ -162,7 +201,6 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
             if not shift_data:
                 continue
 
-            # Flatten entries
             all_entries = []
             for rp in shift_data:
                 for entry in (rp.get("entries", []) or [None]):
@@ -190,8 +228,8 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
                     raw_colabs = entry.get("collaborators") or ""
                     colab_parts = [c.strip() for c in raw_colabs.split(",") if c.strip()]
                     trabajadores = []
-                    for i in range(4):
-                        trabajadores.append(colab_parts[i] if i < len(colab_parts) else None)
+                    for j in range(4):
+                        trabajadores.append(colab_parts[j] if j < len(colab_parts) else None)
 
                     all_entries.append({
                         "trabajadores": trabajadores,
@@ -210,7 +248,7 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
                 continue
 
             safe_group = group.replace("Mantt. Eq. ", "").replace(" ", "_")
-            sheet_name = f"{safe_group}_{shift}"[:31]
+            sheet_name = f"{safe_group}_{shift}_{short_date}"[:31]
 
             header_info = {
                 "date": date_str,
@@ -218,29 +256,25 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
                 "group_name": group,
             }
 
-            if sheet_count == 0:
-                # First sheet: reuse the template sheet (rename + populate)
-                ws = template_ws
-                ws.title = sheet_name
-            else:
-                # Copy template sheet
-                ws = _copy_sheet(wb, template_ws, sheet_name, sheet_count)
+            # Always copy from pristine template (never modify src_ws)
+            ws = _copy_sheet(wb, src_ws, sheet_name, sheet_count)
 
-            n_entries = len(all_entries)
             _populate_data(ws, all_entries, header_info)
             sheet_names.append(sheet_name)
-            sheet_num_rows[sheet_name] = n_entries
+            sheet_num_rows[sheet_name] = len(all_entries)
             sheet_count += 1
 
     if sheet_count == 0:
-        ws = template_ws
-        ws.title = "Sin_Datos"
+        ws = _copy_sheet(wb, src_ws, f"Sin_Datos_{short_date}"[:31], 0)
         _populate_data(ws, [], {"date": date_str, "shift": "", "group_name": "Sin datos"})
-        sheet_names.append("Sin_Datos")
-        sheet_num_rows["Sin_Datos"] = 0
+        sheet_names.append(ws.title)
+        sheet_num_rows[ws.title] = 0
         sheet_count = 1
 
-    # Remove any leftover template sheets not in our list
+    # Remove the pristine template
+    del wb["__template__"]
+
+    # Remove any leftover sheets
     for name in list(wb.sheetnames):
         if name not in sheet_names:
             del wb[name]
@@ -254,12 +288,11 @@ def generate_daily_report(target_date: date, reports_data: dict) -> str:
             try:
                 img = XlImage(FOOTER_IMAGE_PATH)
                 img.anchor = f"A{footer_row}"
-                # Set in pixels; on save openpyxl converts to EMU: 62.19 x 1.23 cm
                 img.width = 2351
                 img.height = 47
                 ws.add_image(img)
             except Exception:
-                pass  # skip if image fails on this sheet
+                pass
 
     output_path = os.path.join(REPORTS_DIR, f"Reporte_Diario_{target_date.isoformat()}.xlsx")
     wb.save(output_path)
