@@ -41,12 +41,19 @@ def _copy_sheet(wb, template_ws, new_title, idx):
 
 
 def _collect_images(ws):
-    """Extract (image_bytes, anchor_string, width, height) from a worksheet."""
+    """Extract (image_bytes, anchor_obj, width, height) from a worksheet."""
     items = []
     for img in getattr(ws, '_images', []) or []:
         try:
-            data = img._data()
-            items.append((data, str(img.anchor), img.width, img.height))
+            ref = img.ref
+            if isinstance(ref, io.BytesIO):
+                ref.seek(0)
+                data = ref.read()
+                items.append((data, img.anchor, img.width, img.height))
+            else:
+                data = ref.read() if hasattr(ref, 'read') else None
+                if data:
+                    items.append((data, img.anchor, img.width, img.height))
         except Exception:
             pass
     return items
@@ -54,10 +61,10 @@ def _collect_images(ws):
 
 def _restore_images(ws, items):
     """Add previously collected images to a worksheet."""
-    for data_bytes, anchor_str, width, height in items:
+    for data_bytes, anchor_obj, width, height in items:
         try:
             img = XlImage(io.BytesIO(data_bytes))
-            img.anchor = anchor_str
+            img.anchor = anchor_obj
             img.width = width
             img.height = height
             ws.add_image(img)
