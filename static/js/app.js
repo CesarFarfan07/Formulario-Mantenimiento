@@ -977,7 +977,7 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
         });
 
         // Build WhatsApp text
-        const waText = buildWhatsAppText(report, entries, payload);
+        const waText = buildWhatsAppText(report, entries, payload) + `\n\n🦺 *RACS*: Envía tus 2 reportes semanales → ${window.location.origin}/racs`;
         const waUrl = getWhatsAppUrl(waText);
         const waEncoded = encodeURIComponent(waText);
         successHtml += `<div class="mt-3 text-center d-flex gap-2 justify-content-center flex-wrap">
@@ -1232,7 +1232,7 @@ async function viewReport(id) {
         });
 
         // WhatsApp button + copy button
-        const waText = buildWhatsAppText(r, null, r);
+        const waText = buildWhatsAppText(r, null, r) + `\n\n🦺 *RACS*: Envía tus 2 reportes semanales → ${window.location.origin}/racs`;
         const waUrl = getWhatsAppUrl(waText);
         const waEncoded = encodeURIComponent(waText);
         html += `<div class="mt-3 text-center d-flex gap-2 justify-content-center flex-wrap">

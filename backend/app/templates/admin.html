@@ -49,6 +49,7 @@
                 <li class="nav-item"><button class="nav-link text-info" data-tab="trackless" onclick="switchMainTab('trackless')"><i class="bi bi-truck"></i> Mantto. Trackless</button></li>
                 <li class="nav-item"><button class="nav-link text-success" data-tab="convencional" onclick="switchMainTab('convencional')"><i class="bi bi-tools"></i> Mantto. Convencional</button></li>
                 <li class="nav-item"><button class="nav-link text-warning" data-tab="electrico" onclick="switchMainTab('electrico')"><i class="bi bi-lightning"></i> Mantto. Eléctrico</button></li>
+                <li class="nav-item"><button class="nav-link text-info" data-tab="racs" onclick="switchMainTab('racs')"><i class="bi bi-people"></i> Personal RACS</button></li>
             </ul>
 
             <!-- Panel: Config. General (Equipos, Colaboradores, Niveles, Turnos) -->
@@ -97,6 +98,44 @@
             <div id="tab-trackless" class="main-tab-content d-none"><div id="panel-trackless" class="text-muted small">Cargando...</div></div>
             <div id="tab-convencional" class="main-tab-content d-none"><div id="panel-convencional" class="text-muted small">Cargando...</div></div>
             <div id="tab-electrico" class="main-tab-content d-none"><div id="panel-electrico" class="text-muted small">Cargando...</div></div>
+
+            <!-- Panel: Personal RACS (guardias, cargos, grupos) -->
+            <div id="tab-racs" class="main-tab-content d-none">
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <div class="card bg-dark border-info">
+                            <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between align-items-center py-2">
+                                <span><i class="bi bi-calendar3 me-2"></i>Ciclos de Guardia (20 trabajo + 10 descanso)</span>
+                                <button class="btn btn-sm btn-dark" onclick="loadRacsAdmin()"><i class="bi bi-arrow-clockwise"></i></button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-sm align-middle mb-0">
+                                        <thead><tr><th>Guardia</th><th>Inicio de ciclo</th><th>Estado hoy</th><th>Día del ciclo</th></tr></thead>
+                                        <tbody id="adminGuardiaPhases"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="card bg-dark border-info">
+                            <div class="card-header bg-info text-dark fw-bold d-flex justify-content-between align-items-center py-2">
+                                <span><i class="bi bi-people me-2"></i>Trabajadores RACS</span>
+                                <div>
+                                    <button class="btn btn-sm btn-dark me-1" onclick="showAddRacsWorker()"><i class="bi bi-person-plus"></i> Agregar</button>
+                                    <button class="btn btn-sm btn-success" onclick="saveRacsWorkers()"><i class="bi bi-check2-circle"></i> Guardar cambios</button>
+                                </div>
+                            </div>
+                            <div class="card-body" id="adminRacsWorkers">
+                                <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-info"></div> Cargando...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -122,7 +161,223 @@
     </div>
 
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;" id="toastContainer"></div>
+
+    <!-- Modal Add RACS Worker -->
+    <div class="modal fade" id="racsWorkerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title text-info" id="racsWorkerModalTitle">Nuevo trabajador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="form-label small">Nombre</label>
+                        <input type="text" class="form-control" id="racsNewName" placeholder="Nombre completo">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Grupo / Equipo</label>
+                        <div class="input-group">
+                            <select class="form-select" id="racsNewGroup">
+                                <option value="Trackless">Trackless</option>
+                                <option value="Convencional">Convencional</option>
+                                <option value="Electrico">Eléctrico</option>
+                            </select>
+                            <input type="text" class="form-control" id="racsNewGroupCustom" placeholder="O escribe grupo nuevo" style="max-width:150px;">
+                        </div>
+                        <small class="text-muted">Selecciona un grupo existente o escribe uno nuevo (ej: Supervisores)</small>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Cargo</label>
+                        <input type="text" class="form-control" id="racsNewCargo" placeholder="Ej: Mecánico, Electricista, Supervisor...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Guardia</label>
+                        <select class="form-select" id="racsNewGuardia"><option value="">Sin guardia</option></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info" onclick="saveRacsWorker()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ─── RACS Admin: inline management ──────────────────────────────────────
+    let _racsAdminData = null;
+
+    function switchMainTab(tab) {
+        document.querySelectorAll('.main-tab-content').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('#mainTabs .nav-link').forEach(el => el.classList.remove('active'));
+        const content = document.getElementById('tab-' + tab);
+        if (content) content.classList.remove('d-none');
+        const btn = document.querySelector(`#mainTabs .nav-link[data-tab="${tab}"]`);
+        if (btn) btn.classList.add('active');
+        if (tab === 'racs') loadRacsAdmin();
+    }
+
+    function loadRacsAdmin() {
+        Promise.all([
+            fetch('/api/guardias').then(r => r.json())
+        ]).then(([data]) => {
+            _racsAdminData = data;
+            renderAdminGuardiaPhases();
+            renderAdminWorkers();
+        }).catch(e => document.getElementById('adminRacsWorkers').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`);
+    }
+
+    function renderAdminGuardiaPhases() {
+        const today = new Date().toISOString().slice(0,10);
+        let html = '';
+        for (const g of (_racsAdminData?.guardias || [])) {
+            const ps = g.phase_start.slice(0,10);
+            const d1 = new Date(ps);
+            const d2 = new Date(today);
+            const elapsed = Math.floor((d2 - d1) / (1000*60*60*24));
+            const cycleDay = ((elapsed % 30) + 30) % 30;
+            const onSite = cycleDay < 20;
+            html += `<tr>
+                <td class="fw-bold">Guardia ${g.name}</td>
+                <td><input type="date" class="form-control form-control-sm bg-dark text-light border-secondary" style="max-width:170px;" value="${ps}" id="adminPhase_${g.name}" data-orig="${ps}"></td>
+                <td class="${onSite ? 'text-success' : 'text-danger'} fw-bold">${onSite ? 'En unidad' : 'Descanso'}</td>
+                <td>${cycleDay}/30</td>
+            </tr>`;
+        }
+        document.getElementById('adminGuardiaPhases').innerHTML = html;
+    }
+
+    function renderAdminWorkers() {
+        let html = '';
+        for (const team of (_racsAdminData?.workers || [])) {
+            html += `<div class="mb-2">
+                <h6 class="text-info border-bottom border-secondary pb-1 d-flex justify-content-between">
+                    <span>${team.group}</span>
+                    <span class="text-muted small fw-normal">${team.workers.length} trabajadores</span>
+                </h6>
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm align-middle mb-0">
+                        <thead><tr><th>Trabajador</th><th>Grupo</th><th>Cargo</th><th>Guardia</th><th></th></tr></thead>
+                        <tbody>`;
+            for (const w of team.workers) {
+                const groupOptions = ['Trackless','Convencional','Electrico','Supervisores','Administrativo'].map(g =>
+                    `<option value="${g}" ${g === team.group ? 'selected' : ''}>${g}</option>`
+                ).join('');
+                html += `<tr>
+                    <td>${w.name}</td>
+                    <td><select class="form-select form-select-sm bg-dark text-light border-secondary" id="ag_${team.group}_${w.name}" style="min-width:140px;">${groupOptions}</select></td>
+                    <td><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" style="min-width:120px;" value="${w.cargo || ''}" id="ac_${team.group}_${w.name}" placeholder="Cargo"></td>
+                    <td>
+                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="awg_${team.group}_${w.name}" style="min-width:120px;">
+                            <option value="">Sin guardia</option>
+                            ${(_racsAdminData?.guardias || []).map(g => `<option value="${g.name}" ${g.name === w.guardia ? 'selected' : ''}>Guardia ${g.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteRacsWorker('${team.group}','${w.name}')" title="Desactivar"><i class="bi bi-trash"></i></button></td>
+                </tr>`;
+            }
+            html += `</tbody></table></div></div>`;
+        }
+        document.getElementById('adminRacsWorkers').innerHTML = html || '<p class="text-muted small">No hay trabajadores RACS registrados.</p>';
+    }
+
+    function saveRacsWorkers() {
+        const promises = [];
+        // Save phase dates
+        for (const g of (_racsAdminData?.guardias || [])) {
+            const el = document.getElementById(`adminPhase_${g.name}`);
+            if (el && el.value !== el.dataset.orig) {
+                promises.push(fetch('/api/guardias/update', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update_phase', guardia:g.name, phase_start:el.value}) }).then(r=>r.json()));
+            }
+        }
+        // Save worker changes (guardia, cargo, group)
+        for (const team of (_racsAdminData?.workers || [])) {
+            for (const w of team.workers) {
+                const sel = document.getElementById(`awg_${team.group}_${w.name}`);
+                const cargo = document.getElementById(`ac_${team.group}_${w.name}`);
+                const groupSel = document.getElementById(`ag_${team.group}_${w.name}`);
+                if (sel || cargo || groupSel) {
+                    const newGuardia = sel?.value ?? w.guardia;
+                    const newCargo = cargo?.value ?? w.cargo;
+                    const newGroup = groupSel?.value ?? team.group;
+                    if (newGuardia !== w.guardia || newCargo !== (w.cargo || '') || newGroup !== team.group) {
+                        promises.push(
+                            fetch('/api/guardias/update', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'assign_worker', worker_name:w.name, group_name:team.group, guardia:newGuardia, cargo:newCargo}) }).then(r=>r.json())
+                        );
+                        if (newGroup !== team.group) {
+                            promises.push(
+                                fetch('/api/racs/workers/change-group', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:w.name, old_group:team.group, new_group:newGroup}) }).then(r=>r.json())
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        if (promises.length === 0) { showRacsToast('Sin cambios'); return; }
+        Promise.all(promises).then(() => { showRacsToast('Guardado correctamente'); loadRacsAdmin(); }).catch(e => showRacsToast('Error al guardar', 'danger'));
+    }
+
+    function deleteRacsWorker(group, name) {
+        if (!confirm(`Desactivar a ${name}?`)) return;
+        fetch(`/api/racs/workers/delete-by-name?name=${encodeURIComponent(name)}&group=${encodeURIComponent(group)}`, { method:'DELETE' })
+        .then(r => r.json()).then(() => { showRacsToast(`${name} desactivado`); loadRacsAdmin(); })
+        .catch(e => showRacsToast('Error: ' + e.message, 'danger'));
+    }
+
+    function showAddRacsWorker() {
+        document.getElementById('racsNewName').value = '';
+        document.getElementById('racsNewCargo').value = '';
+        document.getElementById('racsNewGroup').value = 'Trackless';
+        document.getElementById('racsNewGroupCustom').value = '';
+        const sel = document.getElementById('racsNewGuardia');
+        sel.innerHTML = '<option value="">Sin guardia</option>';
+        for (const g of (_racsAdminData?.guardias || [])) {
+            sel.innerHTML += `<option value="${g.name}">Guardia ${g.name}</option>`;
+        }
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('racsWorkerModal'));
+        modal.show();
+    }
+
+    function saveRacsWorker() {
+        const name = document.getElementById('racsNewName').value.trim();
+        const group = document.getElementById('racsNewGroupCustom').value.trim() || document.getElementById('racsNewGroup').value;
+        const cargo = document.getElementById('racsNewCargo').value.trim();
+        const guardia = document.getElementById('racsNewGuardia').value;
+        if (!name) { showRacsToast('Ingresa el nombre', 'danger'); return; }
+        fetch('/api/racs/workers/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, group_name: group, cargo})
+        }).then(r => {
+            if (!r.ok) return r.text().then(t => { throw new Error(t); });
+            return r.json();
+        }).then(data => {
+            if (guardia) {
+                return fetch('/api/guardias/update', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action:'assign_worker', worker_name:name, group_name:group, guardia})
+                }).then(r => r.json());
+            }
+        }).then(() => {
+            bootstrap.Modal.getInstance(document.getElementById('racsWorkerModal')).hide();
+            showRacsToast('Trabajador agregado');
+            loadRacsAdmin();
+        }).catch(e => showRacsToast('Error: ' + e.message, 'danger'));
+    }
+
+    function showRacsToast(msg, type='success') {
+        const container = document.getElementById('toastContainer');
+        const div = document.createElement('div');
+        div.className = `alert alert-${type} py-2 px-3 mb-1`;
+        div.style.fontSize = '0.85rem';
+        div.textContent = msg;
+        container.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
+    </script>
     <script src="/static/js/admin.js?v=6"></script>
 </body>
 </html>

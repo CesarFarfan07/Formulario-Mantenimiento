@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RACS - Reporte de Actos y Condiciones Subestándar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/style.css?v=6" rel="stylesheet">
+    <style>
+        body { background: #0f172a; }
+        .racs-card { background: linear-gradient(135deg, #1e293b 0%, #1a2332 100%); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.3); }
+        .racs-header { border-bottom: 2px solid rgba(245,158,11,.4); padding-bottom: .75rem; margin-bottom: 1rem; }
+        .racs-header h5 { font-weight: 700; background: linear-gradient(135deg, #f59e0b, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .racs-header .code-info { font-size: .65rem; color: rgba(255,255,255,.3); letter-spacing: .5px; }
+        .section-title { font-weight: 700; font-size: .85rem; padding: .4rem .75rem; border-radius: 8px; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+        .section-title.orange { background: rgba(245,158,11,.12); color: #fbbf24; border-left: 3px solid #f59e0b; }
+        .section-title.blue { background: rgba(59,130,246,.1); color: #93c5fd; border-left: 3px solid #3b82f6; }
+        .section-title i { font-size: .9rem; }
+        .btn-group-option { display: flex; gap: .4rem; flex-wrap: wrap; }
+        .btn-option { padding: .45rem .85rem; border-radius: 8px; font-size: .78rem; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: all .15s ease; background: rgba(255,255,255,.04); color: rgba(255,255,255,.5); }
+        .btn-option:hover { background: rgba(255,255,255,.08); transform: translateY(-1px); }
+        .btn-option.active { border-color: #f59e0b; background: rgba(245,158,11,.12); color: #fbbf24; }
+        .btn-option.active-ss { border-color: #3b82f6; background: rgba(59,130,246,.12); color: #93c5fd; }
+        .btn-option.active-ma { border-color: #10b981; background: rgba(16,185,129,.12); color: #6ee7b7; }
+        .btn-option.active-acto { border-color: #ef4444; background: rgba(239,68,68,.1); color: #fca5a5; }
+        .btn-option.active-cond { border-color: #f59e0b; background: rgba(245,158,11,.1); color: #fcd34d; }
+        .btn-option.turno.active { border-color: #8b5cf6; background: rgba(139,92,246,.12); color: #c4b5fd; }
+        .btn-option.turno-dia { border-color: transparent; }
+        .btn-option.turno-noche { border-color: transparent; }
+        .checklist-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .25rem; }
+        .checklist-grid .check-item { padding: .3rem .5rem; border-radius: 6px; font-size: .73rem; cursor: pointer; transition: all .12s ease; background: rgba(255,255,255,.03); color: rgba(255,255,255,.5); border: 1px solid transparent; display: flex; align-items: center; gap: .35rem; }
+        .checklist-grid .check-item:hover { background: rgba(255,255,255,.07); transform: translateY(-1px); }
+        .checklist-grid .check-item.selected { border-color: #f59e0b; background: rgba(245,158,11,.12); color: #fbbf24; }
+        .checklist-grid .check-item .num { font-size: .6rem; opacity: .4; min-width: 1.4rem; }
+        .riesgo-group { display: flex; gap: .5rem; }
+        .riesgo-btn { flex: 1; padding: .55rem; border-radius: 8px; font-size: .8rem; font-weight: 700; text-align: center; cursor: pointer; border: 2px solid transparent; transition: all .15s ease; }
+        .riesgo-btn.alto { background: rgba(239,68,68,.1); color: #fca5a5; }
+        .riesgo-btn.alto:hover { background: rgba(239,68,68,.2); box-shadow: 0 0 12px rgba(239,68,68,.15); }
+        .riesgo-btn.alto.active { border-color: #ef4444; background: rgba(239,68,68,.2); box-shadow: 0 0 16px rgba(239,68,68,.2); }
+        .riesgo-btn.medio { background: rgba(234,179,8,.1); color: #fde047; }
+        .riesgo-btn.medio:hover { background: rgba(234,179,8,.2); box-shadow: 0 0 12px rgba(234,179,8,.15); }
+        .riesgo-btn.medio.active { border-color: #eab308; background: rgba(234,179,8,.2); box-shadow: 0 0 16px rgba(234,179,8,.2); }
+        .riesgo-btn.bajo { background: rgba(34,197,94,.1); color: #86efac; }
+        .riesgo-btn.bajo:hover { background: rgba(34,197,94,.2); box-shadow: 0 0 12px rgba(34,197,94,.15); }
+        .riesgo-btn.bajo.active { border-color: #22c55e; background: rgba(34,197,94,.2); box-shadow: 0 0 16px rgba(34,197,94,.2); }
+        .field-label { font-size: .7rem; font-weight: 600; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .6px; margin-bottom: .25rem; }
+        .racs-input { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: #e2e8f0; padding: .4rem .65rem; font-size: .82rem; width: 100%; transition: border-color .2s, box-shadow .2s; }
+        .racs-input:focus { outline: none; border-color: #f59e0b; background: rgba(255,255,255,.08); box-shadow: 0 0 0 2px rgba(245,158,11,.1); }
+        .racs-input::placeholder { color: rgba(255,255,255,.15); }
+        .racs-select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; color: #e2e8f0; padding: .4rem .65rem; font-size: .82rem; width: 100%; cursor: pointer; }
+        .racs-select:focus { outline: none; border-color: #f59e0b; box-shadow: 0 0 0 2px rgba(245,158,11,.1); }
+        .footer-section { border-top: 1px solid rgba(255,255,255,.06); padding-top: 1rem; margin-top: 1rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        .footer-section .footer-field { font-size: .8rem; }
+        .footer-section .footer-field .label { font-weight: 600; color: rgba(255,255,255,.3); font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; }
+        .footer-section .footer-field .value { color: rgba(255,255,255,.6); margin-top: .15rem; }
+        @media (max-width: 768px) {
+            .checklist-grid { grid-template-columns: 1fr 1fr; }
+            .footer-section { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .checklist-grid { grid-template-columns: 1fr; }
+            .riesgo-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-navbar border-bottom border-warning mb-4 py-0 navbar-expand-md">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="/static/logo.jpg" alt="Logo" class="me-3 d-none d-sm-block" style="height:50px;width:auto;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+                <span class="navbar-brand mb-0 h1 text-warning fw-bold fs-6 fs-md-5">
+                    <i class="bi bi-shield-exclamation me-2"></i>RACS
+                </span>
+            </div>
+            <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarRacs">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarRacs">
+                <div class="d-flex flex-wrap gap-1 ms-auto py-2 py-md-0">
+                    <a href="/" class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-tools"></i> <span class="d-none d-sm-inline">Formulario</span>
+                    </a>
+                    <a href="/racs" class="btn btn-warning btn-sm">
+                        <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Enviar RACS</span>
+                    </a>
+                    <a href="/racs/dashboard" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Tablero RACS</span>
+                    </a>
+                    <a href="/dashboard" class="btn btn-outline-info btn-sm">
+                        <i class="bi bi-graph-up"></i> <span class="d-none d-sm-inline">Dashboard</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="racs-card p-3 p-md-4">
+                    <div class="racs-header d-flex justify-content-between align-items-start flex-wrap">
+                        <div>
+                            <h5 class="mb-1"><i class="bi bi-shield-exclamation me-2"></i>Reporte de Actos y Condiciones Subestándares <small style="font-size:.6rem;font-weight:400;opacity:.5;">(RACS)</small></h5>
+                        </div>
+                        <div class="text-end code-info">
+                            <div>Código: P-SSO-09.F1</div>
+                            <div>Versión: 02</div>
+                            <div>Página: 1 de 1</div>
+                        </div>
+                    </div>
+
+                    <form id="racsForm">
+                        <!-- Datos Generales -->
+                        <div class="section-title orange"><i class="bi bi-info-circle"></i> Datos Generales</div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <div class="field-label">Reportado por</div>
+                                <select class="racs-select" id="racsWorker" required>
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="field-label">Cargo</div>
+                                <input type="text" class="racs-input" id="racsCargoDisplay" readonly style="cursor:default;">
+                            </div>
+                            <div class="col-md-2">
+                                <div class="field-label">Fecha</div>
+                                <input type="text" class="racs-input" id="racsFechaDisplay" readonly style="cursor:default;">
+                            </div>
+                            <div class="col-md-2">
+                                <div class="field-label">Turno</div>
+                                <div class="btn-group-option">
+                                    <div class="btn-option turno active turno-dia" data-turno="DÍA" onclick="selectTurno(this)"><i class="bi bi-sun me-1"></i>DÍA</div>
+                                    <div class="btn-option turno turno-noche" data-turno="NOCHE" onclick="selectTurno(this)"><i class="bi bi-moon me-1"></i>NOCHE</div>
+                                </div>
+                                <input type="hidden" id="racsTurno" value="DÍA">
+                            </div>
+                            <div class="col-md-2">
+                                <div class="field-label">Guardia</div>
+                                <input type="text" class="racs-input" id="racsGuardiaDisplay" readonly style="cursor:default;">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-4">
+                                <div class="field-label">Empresa</div>
+                                <input type="text" class="racs-input" value="Inversiones Prosol" readonly style="cursor:default;">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="field-label">Nivel</div>
+                                <select class="racs-select" id="racsNivel">
+                                    <option value="">Seleccionar...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="field-label">Labor / Lugar</div>
+                                <input type="text" class="racs-input" id="racsUbicacion" placeholder="Ej: Taller de soldadura, Nivel 3, Rampa principal...">
+                            </div>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-md-12">
+                                <div class="field-label">Referencia del lugar <span class="text-danger">*</span></div>
+                                <textarea class="racs-input" id="racsReferencia" rows="2" placeholder="Describe cómo llegar al lugar del reporte (ej: A 50m del crucero NV 320, tercer pique a la izquierda...)" required></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Categoría -->
+                        <div class="section-title orange"><i class="bi bi-tag"></i> Categoría</div>
+                        <div class="btn-group-option mb-3">
+                            <div class="btn-option active active-ss" data-categoria="Seguridad y Salud Ocupacional" onclick="selectCategoria(this, 'ss')"><i class="bi bi-shield-check me-1"></i> Seguridad y Salud Ocupacional</div>
+                            <div class="btn-option" data-categoria="Medio Ambiente" onclick="selectCategoria(this, 'ma')"><i class="bi bi-tree me-1"></i> Medio Ambiente</div>
+                        </div>
+                        <input type="hidden" id="racsCategoria" value="Seguridad y Salud Ocupacional">
+
+                        <!-- Tipo -->
+                        <div class="section-title orange"><i class="bi bi-exclamation-triangle"></i> Tipo</div>
+                        <div class="btn-group-option mb-3">
+                            <div class="btn-option active active-acto" data-tipo="Acto Subestándar" onclick="selectTipo(this, 'acto')"><i class="bi bi-exclamation-triangle me-1"></i> Acto Subestándar</div>
+                            <div class="btn-option" data-tipo="Condición Subestándar" onclick="selectTipo(this, 'cond')"><i class="bi bi-exclamation-octagon me-1"></i> Condición Subestándar</div>
+                        </div>
+                        <input type="hidden" id="racsTipo" value="Acto Subestándar">
+
+                        <!-- Descripción -->
+                        <div class="section-title blue"><i class="bi bi-pencil-square"></i> Descripción del Reporte</div>
+                        <div class="mb-3">
+                            <textarea class="racs-input" id="racsDescripcion" rows="4" placeholder="Describe en detalle el acto o condición subestándar observada..." style="resize:vertical;"></textarea>
+                        </div>
+
+                        <!-- Acción Correctiva -->
+                        <div class="section-title blue"><i class="bi bi-wrench"></i> Acción Correctiva (Propuesta / Realizada)</div>
+                        <div class="mb-3">
+                            <textarea class="racs-input" id="racsAccion" rows="3" placeholder="Describe la acción correctiva implementada o propuesta..." style="resize:vertical;"></textarea>
+                        </div>
+
+                        <!-- Checklist (single select) -->
+                        <div class="section-title orange"><i class="bi bi-list-check"></i> Descripción del tipo de reporte</div>
+                        <div class="checklist-grid mb-2" id="racsChecklist"></div>
+                        <div id="racsOtrosContainer" class="mb-3" style="display:none;">
+                            <input type="text" class="racs-input" id="racsOtrosTexto" placeholder="Describe el tipo de reporte...">
+                        </div>
+                        <input type="hidden" id="racsTipoDescripcion">
+
+                        <!-- Riesgo -->
+                        <div class="section-title orange"><i class="bi bi-exclamation-diamond"></i> Nivel de Riesgo</div>
+                        <div class="riesgo-group mb-3">
+                            <div class="riesgo-btn alto active" data-riesgo="Alto" onclick="selectRiesgo(this, 'Alto')">ALTO</div>
+                            <div class="riesgo-btn medio" data-riesgo="Medio" onclick="selectRiesgo(this, 'Medio')">MEDIO</div>
+                            <div class="riesgo-btn bajo" data-riesgo="Bajo" onclick="selectRiesgo(this, 'Bajo')">BAJO</div>
+                        </div>
+                        <input type="hidden" id="racsRiesgo" value="Alto">
+
+                        <!-- Footer -->
+                        <div class="footer-section">
+                            <div class="footer-field">
+                                <div class="label">Describe el tipo de reporte</div>
+                                <div class="value" id="racsDescripcionTipoLabel">—</div>
+                            </div>
+                            <div class="footer-field">
+                                <div class="label">Recibe el reporte</div>
+                                <div class="value" id="racsRecibeLabel">—</div>
+                            </div>
+                            <div class="footer-field">
+                                <div class="label">Cargo / Área / Empresa</div>
+                                <div class="value" id="racsCargoAreaLabel">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <button type="submit" class="btn btn-warning flex-grow-1" id="racsSubmitBtn">
+                                <i class="bi bi-shield-check me-2"></i>ENVIAR REPORTE RACS
+                            </button>
+                            <button type="button" class="btn btn-outline-success" id="racsWAToggle" style="border-color:rgba(34,197,94,.3);color:#22c55e;">
+                                <i class="bi bi-whatsapp"></i>
+                            </button>
+                        </div>
+                        <div id="racsResult" class="mt-3"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/racs.js?v=6"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const peru = new Date(now.toLocaleString('en-US', {timeZone:'America/Lima'}));
+            document.getElementById('racsFechaDisplay').value = peru.toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
+        });
+
+        function selectTurno(el) {
+            document.querySelectorAll('.btn-option.turno').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('racsTurno').value = el.dataset.turno;
+        }
+
+        function selectCategoria(el, type) {
+            document.querySelectorAll('.btn-option[data-categoria]').forEach(b => b.classList.remove('active', 'active-ss', 'active-ma'));
+            el.classList.add('active');
+            el.classList.add(type === 'ss' ? 'active-ss' : 'active-ma');
+            document.getElementById('racsCategoria').value = el.dataset.categoria;
+        }
+
+        function selectTipo(el, type) {
+            document.querySelectorAll('.btn-option[data-tipo]').forEach(b => b.classList.remove('active', 'active-acto', 'active-cond'));
+            el.classList.add('active');
+            el.classList.add(type === 'acto' ? 'active-acto' : 'active-cond');
+            document.getElementById('racsTipo').value = el.dataset.tipo;
+        }
+
+        function selectRiesgo(el, val) {
+            document.querySelectorAll('.riesgo-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('racsRiesgo').value = val;
+        }
+    </script>
+</body>
+</html>

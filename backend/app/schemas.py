@@ -116,3 +116,53 @@ class WorkerResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RacsReportCreate(BaseModel):
+    worker_name: str
+    group_name: str
+    categoria: Optional[str] = None
+    tipo: str
+    turno: Optional[str] = None
+    descripcion: Optional[str] = None
+    ubicacion: Optional[str] = None
+    referencia: Optional[str] = None
+    riesgo: Optional[str] = None
+    accion_correctiva: Optional[str] = None
+    tipo_descripcion: Optional[str] = None
+
+
+class RacsReportResponse(BaseModel):
+    id: int
+    worker_name: str
+    group_name: str
+    categoria: Optional[str] = None
+    tipo: str
+    turno: Optional[str] = None
+    descripcion: Optional[str] = None
+    ubicacion: Optional[str] = None
+    referencia: Optional[str] = None
+    riesgo: Optional[str] = None
+    accion_correctiva: Optional[str] = None
+    tipo_descripcion: Optional[str] = None
+    foto: Optional[str] = None
+    created_at: datetime.datetime
+    period_start: datetime.datetime
+    period_end: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
+class RacsWorkerCreate(BaseModel):
+    name: str
+    group_name: str
+    cargo: Optional[str] = None
+
+
+class RacsWorkerUpdate(BaseModel):
+    name: Optional[str] = None
+    group_name: Optional[str] = None
+    cargo: Optional[str] = None
+    active: Optional[bool] = None
+    guardia: Optional[str] = None

@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Text, Date, Time, DateTime, ForeignKey, Float, Index
+from sqlalchemy import Column, Integer, String, Text, Date, Time, DateTime, ForeignKey, Float, Index, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -151,3 +151,49 @@ class Turno(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False, unique=True)
     position = Column(Integer, default=0)
+
+
+class RacsReport(Base):
+    __tablename__ = "racs_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    worker_name = Column(String(200), nullable=False)
+    group_name = Column(String(100), nullable=False)
+    categoria = Column(String(50), nullable=True)
+    tipo = Column(String(50), nullable=False)
+    descripcion = Column(Text, nullable=True)
+    ubicacion = Column(String(200), nullable=True)
+    referencia = Column(String(300), nullable=True)
+    riesgo = Column(String(20), nullable=True)
+    turno = Column(String(10), nullable=True)
+    accion_correctiva = Column(Text, nullable=True)
+    tipo_descripcion = Column(String(300), nullable=True)
+    foto = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    period_start = Column(DateTime, nullable=False)
+    period_end = Column(DateTime, nullable=False)
+
+
+class Guardia(Base):
+    __tablename__ = "guardias"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False, unique=True)
+    phase_start = Column(Date, nullable=False)
+
+
+class WorkerGuardia(Base):
+    __tablename__ = "worker_guardias"
+    id = Column(Integer, primary_key=True, index=True)
+    worker_name = Column(String(200), nullable=False)
+    group_name = Column(String(100), nullable=False)
+    guardia_id = Column(Integer, ForeignKey("guardias.id"), nullable=False)
+    cargo = Column(String(200), nullable=True)
+
+
+class RacsWorker(Base):
+    __tablename__ = "racs_workers"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    group_name = Column(String(100), nullable=False)
+    cargo = Column(String(200), nullable=True)
+    active = Column(Boolean, default=True)

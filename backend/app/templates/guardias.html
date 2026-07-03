@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Personal y Guardias</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/style.css?v=6" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-navbar border-bottom border-warning mb-4 py-0 navbar-expand-sm">
+        <div class="container">
+            <div class="d-flex align-items-center">
+                <img src="/static/logo.jpg" alt="Logo" class="me-3 d-none d-sm-block" style="height:50px;width:auto;">
+                <span class="navbar-brand mb-0 h1 text-warning fw-bold fs-6">
+                    <i class="bi bi-people me-2"></i>Gestión de Personal
+                </span>
+            </div>
+            <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarGuardia">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarGuardia">
+                <button class="btn btn-success btn-sm me-2" onclick="saveAll()"><i class="bi bi-check2-circle"></i> <span class="d-none d-sm-inline">Guardar todo</span></button>
+                <button class="btn btn-info btn-sm me-2" onclick="showAddWorker()"><i class="bi bi-person-plus"></i> <span class="d-none d-sm-inline">Nuevo trabajador</span></button>
+                <a href="/admin" class="btn btn-outline-light btn-sm me-2"><i class="bi bi-gear"></i> <span class="d-none d-sm-inline">Admin</span></a>
+                <a href="/" class="btn btn-outline-light btn-sm"><i class="bi bi-house"></i> <span class="d-none d-sm-inline">Volver</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <div id="passwordOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="background:rgba(15,20,25,0.95);z-index:9999;">
+        <div class="card bg-dark border-warning" style="max-width:400px;width:100%;">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-lock text-warning" style="font-size:3rem;"></i>
+                <h5 class="mt-2 text-warning">Autenticación requerida</h5>
+                <input type="password" id="adminPass" class="form-control bg-dark text-light mt-3" placeholder="Contraseña">
+                <button class="btn btn-warning mt-3 w-100" onclick="verifyPass()">Ingresar</button>
+                <p id="passError" class="text-danger mt-2 d-none">Contraseña incorrecta</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContent" class="container d-none">
+        <!-- Guardia phases -->
+        <div class="card bg-dark border-warning mb-3">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center py-2">
+                <span><i class="bi bi-calendar3 me-2"></i>Ciclos de Guardia (20 trabajo + 10 descanso)</span>
+                <button class="btn btn-sm btn-dark" onclick="loadData()"><i class="bi bi-arrow-clockwise"></i></button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-sm align-middle mb-0">
+                        <thead><tr><th>Guardia</th><th>Inicio de ciclo</th><th>Estado hoy</th><th>Día del ciclo</th></tr></thead>
+                        <tbody id="guardiaPhaseTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Worker management -->
+        <div class="card bg-dark border-warning">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center py-2">
+                <span><i class="bi bi-people me-2"></i>Trabajadores RACS</span>
+                <button class="btn btn-sm btn-dark" onclick="showAddWorker()"><i class="bi bi-person-plus"></i> Agregar</button>
+            </div>
+            <div class="card-body">
+                <div id="workerAssignment"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Worker -->
+    <div class="modal fade" id="workerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title text-warning" id="workerModalTitle">Nuevo trabajador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editWorkerId">
+                    <div class="mb-2">
+                        <label class="form-label small">Nombre</label>
+                        <input type="text" class="form-control" id="workerName" placeholder="Nombre completo">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Equipo</label>
+                        <select class="form-select" id="workerGroup">
+                            <option value="Trackless">Trackless</option>
+                            <option value="Convencional">Convencional</option>
+                            <option value="Electrico">Eléctrico</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Cargo</label>
+                        <input type="text" class="form-control" id="workerCargo" placeholder="Ej: Mecánico, Electricista, Supervisor...">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Guardia</label>
+                        <select class="form-select" id="workerGuardia"><option value="">Sin guardia</option></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" onclick="saveWorker()">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let _guardiaData = null;
+        let _workerModal = null;
+
+        function verifyPass() {
+            const pass = document.getElementById('adminPass').value;
+            fetch('/api/admin/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pass }) })
+            .then(r => {
+                if (r.ok) {
+                    document.getElementById('passwordOverlay').classList.add('d-none');
+                    document.getElementById('mainContent').classList.remove('d-none');
+                    loadData();
+                } else {
+                    document.getElementById('passError').classList.remove('d-none');
+                }
+            })
+            .catch(() => document.getElementById('passError').classList.remove('d-none'));
+        }
+
+        function loadData() {
+            fetch('/api/guardias').then(r => r.json()).then(d => {
+                _guardiaData = d;
+                renderPhases();
+                renderWorkers();
+            });
+        }
+
+        function renderPhases() {
+            const today = new Date().toISOString().slice(0,10);
+            let html = '';
+            for (const g of (_guardiaData?.guardias || [])) {
+                const ps = g.phase_start.slice(0,10);
+                const d1 = new Date(ps);
+                const d2 = new Date(today);
+                const elapsed = Math.floor((d2 - d1) / (1000*60*60*24));
+                const cycleDay = ((elapsed % 30) + 30) % 30;
+                const onSite = cycleDay < 20;
+                html += `<tr>
+                    <td class="fw-bold">Guardia ${g.name}</td>
+                    <td><input type="date" class="form-control form-control-sm bg-dark text-light border-secondary" style="max-width:180px;" value="${ps}" data-guardia="${g.name}" id="phase_${g.name}"></td>
+                    <td class="${onSite ? 'text-success' : 'text-danger'} fw-bold">${onSite ? 'En unidad' : 'Descanso'}</td>
+                    <td>${cycleDay}/30</td>
+                </tr>`;
+            }
+            document.getElementById('guardiaPhaseTable').innerHTML = html;
+        }
+
+        function renderWorkers() {
+            const container = document.getElementById('workerAssignment');
+            let html = '';
+            for (const team of (_guardiaData?.workers || [])) {
+                html += `<div class="mb-3">
+                    <h6 class="text-warning border-bottom border-secondary pb-1 d-flex justify-content-between">
+                        <span>${team.group}</span>
+                        <span class="text-muted small fw-normal">${team.workers.length} trabajadores</span>
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm align-middle mb-0">
+                            <thead><tr><th>Trabajador</th><th>Cargo</th><th>Guardia</th><th style="width:60px;"></th></tr></thead>
+                            <tbody>`;
+                for (const w of team.workers) {
+                    html += `<tr>
+                        <td>${w.name}</td>
+                        <td><input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" style="min-width:140px;" value="${w.cargo || ''}" id="cargo_${team.group}_${w.name}" placeholder="Cargo"></td>
+                        <td>
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="wg_${team.group}_${w.name}">
+                                <option value="">Sin guardia</option>
+                                ${(_guardiaData?.guardias || []).map(g => `<option value="${g.name}" ${g.name === w.guardia ? 'selected' : ''}>Guardia ${g.name}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteWorker('${team.group}','${w.name}')" title="Desactivar"><i class="bi bi-trash"></i></button></td>
+                    </tr>`;
+                }
+                html += `</tbody></table></div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function saveAll() {
+            const promises = [];
+            for (const g of (_guardiaData?.guardias || [])) {
+                const el = document.getElementById(`phase_${g.name}`);
+                if (el && el.value !== g.phase_start.slice(0,10)) {
+                    promises.push(fetch('/api/guardias/update', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'update_phase', guardia:g.name, phase_start:el.value}) }).then(r=>r.json()));
+                }
+            }
+            for (const team of (_guardiaData?.workers || [])) {
+                for (const w of team.workers) {
+                    const sel = document.getElementById(`wg_${team.group}_${w.name}`);
+                    const cargo = document.getElementById(`cargo_${team.group}_${w.name}`);
+                    if (sel || cargo) {
+                        const newGuardia = sel?.value ?? w.guardia;
+                        const newCargo = cargo?.value ?? w.cargo;
+                        if (newGuardia !== w.guardia || newCargo !== (w.cargo || '')) {
+                            promises.push(fetch('/api/guardias/update', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'assign_worker', worker_name:w.name, group_name:team.group, guardia:newGuardia, cargo:newCargo}) }).then(r=>r.json()));
+                        }
+                    }
+                }
+            }
+            if (promises.length === 0) { showToast('Sin cambios'); return; }
+            Promise.all(promises).then(() => { showToast('Guardado correctamente'); loadData(); }).catch(() => showToast('Error al guardar', 'danger'));
+        }
+
+        function deleteWorker(group, name) {
+            if (!confirm(`Desactivar a ${name}?`)) return;
+            fetch('/api/racs/workers/list').then(r=>r.json()).then(list => {
+                for (const team of list) {
+                    for (const w of team.workers) {
+                        if (w.name === name && w.group === group) {
+                            // Find by name in RacsWorker table - need worker_id
+                            return fetch(`/api/racs/workers/delete-by-name?name=${encodeURIComponent(name)}&group=${encodeURIComponent(group)}`, { method:'DELETE' })
+                            .then(r=>r.json()).then(() => { showToast(`${name} desactivado`); loadData(); });
+                        }
+                    }
+                }
+                showToast('Trabajador no encontrado', 'danger');
+            });
+        }
+
+        function showAddWorker() {
+            document.getElementById('editWorkerId').value = '';
+            document.getElementById('workerName').value = '';
+            document.getElementById('workerCargo').value = '';
+            document.getElementById('workerGroup').value = 'Trackless';
+            const sel = document.getElementById('workerGuardia');
+            sel.innerHTML = '<option value="">Sin guardia</option>';
+            for (const g of (_guardiaData?.guardias || [])) {
+                sel.innerHTML += `<option value="${g.name}">Guardia ${g.name}</option>`;
+            }
+            document.getElementById('workerModalTitle').textContent = 'Nuevo trabajador';
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('workerModal'));
+            modal.show();
+        }
+
+        function saveWorker() {
+            const name = document.getElementById('workerName').value.trim();
+            const group = document.getElementById('workerGroup').value;
+            const cargo = document.getElementById('workerCargo').value.trim();
+            const guardia = document.getElementById('workerGuardia').value;
+            if (!name) { showToast('Ingresa el nombre', 'danger'); return; }
+            fetch('/api/racs/workers/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, group_name: group, cargo})
+            }).then(r => {
+                if (!r.ok) return r.text().then(t => { throw new Error(t); });
+                return r.json();
+            }).then(data => {
+                // Assign guardia if selected
+                if (guardia) {
+                    return fetch('/api/guardias/update', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({action:'assign_worker', worker_name:name, group_name:group, guardia})
+                    }).then(r => r.json());
+                }
+            }).then(() => {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('workerModal'));
+                modal.hide();
+                showToast('Trabajador agregado');
+                loadData();
+            }).catch(e => showToast('Error: ' + e.message, 'danger'));
+        }
+
+        function showToast(msg, type='success') {
+            const div = document.createElement('div');
+            div.className = `position-fixed bottom-0 end-0 m-3 alert alert-${type} py-2 px-3`;
+            div.style.zIndex = '9999';
+            div.textContent = msg;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 2500);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') verifyPass(); });
+        });
+    </script>
+</body>
+</html>
