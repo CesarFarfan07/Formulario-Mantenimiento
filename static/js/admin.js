@@ -69,6 +69,7 @@ function switchMainTab(tab) {
     if (t) t.classList.remove('d-none');
     document.querySelectorAll('#mainTabs .nav-link').forEach(el => el.classList.remove('active'));
     document.querySelector(`#mainTabs [data-tab="${tab}"]`)?.classList.add('active');
+    if (tab === 'racs' && typeof loadRacsAdmin === 'function') loadRacsAdmin();
 }
 
 // ─── Independent panels ───

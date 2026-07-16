@@ -126,7 +126,7 @@
                             </div>
                             <div class="col-md-2">
                                 <div class="field-label">Fecha</div>
-                                <input type="text" class="racs-input" id="racsFechaDisplay" readonly style="cursor:default;">
+                                <input type="date" class="racs-input" id="racsFechaDisplay">
                             </div>
                             <div class="col-md-2">
                                 <div class="field-label">Turno</div>
@@ -175,10 +175,10 @@
                         <!-- Tipo -->
                         <div class="section-title orange"><i class="bi bi-exclamation-triangle"></i> Tipo</div>
                         <div class="btn-group-option mb-3">
-                            <div class="btn-option active active-acto" data-tipo="Acto Subestándar" onclick="selectTipo(this, 'acto')"><i class="bi bi-exclamation-triangle me-1"></i> Acto Subestándar</div>
-                            <div class="btn-option" data-tipo="Condición Subestándar" onclick="selectTipo(this, 'cond')"><i class="bi bi-exclamation-octagon me-1"></i> Condición Subestándar</div>
+                            <div class="btn-option" data-tipo="Acto Subestándar" onclick="selectTipo(this, 'acto')"><i class="bi bi-exclamation-triangle me-1"></i> Acto Subestándar</div>
+                            <div class="btn-option active active-cond" data-tipo="Condición Subestándar" onclick="selectTipo(this, 'cond')"><i class="bi bi-exclamation-octagon me-1"></i> Condición Subestándar</div>
                         </div>
-                        <input type="hidden" id="racsTipo" value="Acto Subestándar">
+                        <input type="hidden" id="racsTipo" value="Condición Subestándar">
 
                         <!-- Descripción -->
                         <div class="section-title blue"><i class="bi bi-pencil-square"></i> Descripción del Reporte</div>
@@ -247,7 +247,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const now = new Date();
             const peru = new Date(now.toLocaleString('en-US', {timeZone:'America/Lima'}));
-            document.getElementById('racsFechaDisplay').value = peru.toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
+            document.getElementById('racsFechaDisplay').value = peru.toISOString().split('T')[0];
         });
 
         function selectTurno(el) {

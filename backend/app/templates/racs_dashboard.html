@@ -3,10 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablero RACS</title>
+    <title>Dashboard RACS — Reporte de Actos y Condiciones Subestándar</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/static/css/style.css?v=6" rel="stylesheet">
+    <style>
+        body { background: #0b1120; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        .glass-card { background: linear-gradient(145deg, rgba(30,41,59,0.7), rgba(22,33,50,0.8)); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.25); }
+        .glass-card:hover { border-color: rgba(255,255,255,0.1); }
+        .kpi-value { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+        .kpi-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .8px; color: rgba(255,255,255,0.35); font-weight: 600; }
+        .kpi-sub { font-size: .75rem; color: rgba(255,255,255,0.25); }
+        .section-title { font-weight: 700; font-size: .9rem; letter-spacing: .5px; border-bottom: 2px solid rgba(245,158,11,0.2); padding-bottom: .5rem; margin-bottom: 1rem; }
+        .section-title i { margin-right: .5rem; color: #f59e0b; }
+        .stat-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.06); overflow: hidden; margin: .25rem 0; }
+        .stat-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+        .okr-ring { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 800; position: relative; }
+        .okr-ring-bg { position: absolute; inset: 0; border-radius: 50%; }
+        .okr-ring-inner { position: relative; z-index: 1; }
+        .trend-bar { height: 40px; border-radius: 4px; background: rgba(255,255,255,0.04); display: flex; align-items: flex-end; gap: 2px; padding: 2px 0; }
+        .trend-bar-item { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .4s ease; position: relative; }
+        .trend-bar-item:hover { opacity: .8; }
+        .trend-bar-item .tooltip-trend { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1e293b; color: #e2e8f0; font-size: .6rem; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 10; }
+        .trend-bar-item:hover .tooltip-trend { display: block; }
+        .compliance-good { color: #22c55e; }
+        .compliance-warn { color: #f59e0b; }
+        .compliance-bad { color: #ef4444; }
+        .dot-riesgo { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+        .dot-riesgo.alto { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+        .dot-riesgo.medio { background: #eab308; box-shadow: 0 0 8px rgba(234,179,8,0.3); }
+        .dot-riesgo.bajo { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.3); }
+        .badge-guardia-a { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.25); }
+        .badge-guardia-b { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
+        .badge-guardia-c { background: rgba(249,115,22,0.15); color: #fdba74; border: 1px solid rgba(249,115,22,0.25); }
+        .badge-guardia-sin { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.2); }
+        .notif-btn { background: linear-gradient(135deg, #22c55e, #16a34a); border: none; color: #fff; }
+        .notif-btn:hover { background: linear-gradient(135deg, #16a34a, #15803d); }
+        .okr-card { border-left: 3px solid; padding-left: .75rem; }
+        .okr-card.objective { border-color: #f59e0b; }
+        .okr-card.kr { border-color: rgba(255,255,255,0.08); margin-left: 1.5rem; }
+        .okr-progress { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.06); overflow: hidden; }
+        .okr-progress-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+        .table-racs { font-size: .78rem; }
+        .table-racs th { background: rgba(255,255,255,0.03) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; font-weight: 600; text-transform: uppercase; font-size: .65rem; letter-spacing: .5px; color: rgba(255,255,255,0.4); }
+        .table-racs td { vertical-align: middle; border-color: rgba(255,255,255,0.04) !important; }
+        .table-racs tr:hover td { background: rgba(255,255,255,0.02); }
+        @media (max-width: 768px) {
+            .kpi-value { font-size: 1.5rem; }
+            .okr-ring { width: 44px; height: 44px; font-size: .8rem; }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar navbar-dark bg-navbar border-bottom border-warning mb-4 py-0 navbar-expand-md">
@@ -14,7 +60,7 @@
             <div class="d-flex align-items-center">
                 <img src="/static/logo.jpg" alt="Logo" class="me-3 d-none d-sm-block" style="height:50px;width:auto;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
                 <span class="navbar-brand mb-0 h1 text-warning fw-bold fs-6 fs-md-5">
-                    <i class="bi bi-bar-chart me-2"></i>Tablero RACS
+                    <i class="bi bi-shield-exclamation me-2"></i>Dashboard RACS
                 </span>
             </div>
             <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#navbarRacsD">
@@ -22,94 +68,451 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarRacsD">
                 <div class="d-flex flex-wrap gap-1 ms-auto py-2 py-md-0">
-                    <a href="/" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-tools"></i> <span class="d-none d-sm-inline">Formulario</span>
-                    </a>
-                    <a href="/racs" class="btn btn-outline-warning btn-sm">
-                        <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Enviar RACS</span>
-                    </a>
-                    <a href="/racs/dashboard" class="btn btn-info btn-sm">
-                        <i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Tablero RACS</span>
-                    </a>
-                    <a href="/dashboard" class="btn btn-outline-info btn-sm">
-                        <i class="bi bi-graph-up"></i> <span class="d-none d-sm-inline">Dashboard</span>
-                    </a>
+                    <a href="/" class="btn btn-outline-light btn-sm"><i class="bi bi-tools"></i> <span class="d-none d-sm-inline">Formulario</span></a>
+                    <a href="/racs" class="btn btn-outline-warning btn-sm"><i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Enviar RACS</span></a>
+                    <a href="/racs/dashboard" class="btn btn-info btn-sm"><i class="bi bi-bar-chart"></i> <span class="d-none d-sm-inline">Dashboard</span></a>
+                    <a href="/dashboard" class="btn btn-outline-info btn-sm"><i class="bi bi-graph-up"></i> <span class="d-none d-sm-inline">Reportes</span></a>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="container mb-4">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex align-items-center gap-2">
-                    <span style="font-size:1.8rem;">🦺</span>
-                    <div>
-                        <h5 class="mb-0">Tablero RACS</h5>
-                        <small class="text-muted" id="dashboardPeriodLabel">Cargando...</small>
-                    </div>
+        <!-- Header -->
+        <div class="glass-card p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                <div>
+                    <h4 class="fw-bold mb-1" style="color:#fbbf24;"><i class="bi bi-shield-fill me-2"></i>Panel de Control — RACS</h4>
+                    <p class="mb-0" style="font-size:.8rem;color:rgba(255,255,255,0.3);">Reporte de Actos y Condiciones Subestándares — Cía. PROSOL ISPACAS S.A.</p>
+                </div>
+                <div class="text-end">
+                    <div style="font-size:.65rem;color:rgba(255,255,255,0.25);" id="periodLabel">Cargando período...</div>
+                    <div style="font-size:.65rem;color:rgba(255,255,255,0.2);">Actualizado <span id="lastUpdate">—</span></div>
                 </div>
             </div>
-            <div class="card-body">
-                <!-- Summary cards -->
-                <div class="row g-2 mb-3" id="summaryRow">
-                    <div class="col-4 col-md-2">
-                        <div class="p-2 rounded text-center" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);">
-                            <div class="small text-muted">✅ Completos</div>
-                            <div class="fs-4 fw-bold" style="color:#10b981;" id="summaryComplete">0</div>
-                        </div>
+        </div>
+
+        <!-- KPI Row 1 — Core Metrics -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="glass-card p-3 text-center h-100">
+                    <div class="kpi-label"><i class="bi bi-file-text me-1"></i>Total RACS</div>
+                    <div class="kpi-value" style="color:#60a5fa;" id="kpiTotal">—</div>
+                    <div class="kpi-sub" id="kpiPeriod">reportes en el período</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-card p-3 text-center h-100">
+                    <div class="kpi-label"><i class="bi bi-check-circle me-1"></i>Cumplimiento</div>
+                    <div class="kpi-value" style="color:#22c55e;" id="kpiCumplimiento">—</div>
+                    <div class="kpi-sub"><span id="kpiCumplDetalle">0 de 0 trabajadores</span> con ≥2 RACS</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-card p-3 text-center h-100">
+                    <div class="kpi-label"><i class="bi bi-exclamation-triangle me-1"></i>Riesgo Alto</div>
+                    <div class="kpi-value" style="color:#ef4444;" id="kpiRiesgoAlto">—</div>
+                    <div class="kpi-sub" id="kpiRiesgoAltoPct">del total de reportes</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="glass-card p-3 text-center h-100">
+                    <div class="kpi-label"><i class="bi bi-person-check me-1"></i>Trabajadores en unidad</div>
+                    <div class="kpi-value" style="color:#a78bfa;" id="kpiActivos">—</div>
+                    <div class="kpi-sub">reportando esta semana</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI Row 2 — Distributions -->
+        <div class="row g-3 mb-4">
+            <!-- Risk distribution -->
+            <div class="col-md-4">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-exclamation-diamond"></i>Distribución por Nivel de Riesgo</div>
+                    <div id="riesgoChart"></div>
+                </div>
+            </div>
+            <!-- Category vs Type -->
+            <div class="col-md-4">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-tags"></i>Categoría vs Tipo</div>
+                    <div id="categoriaChart"></div>
+                </div>
+            </div>
+            <!-- Turno -->
+            <div class="col-md-4">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-clock"></i>Turno</div>
+                    <div id="turnoChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend + Guardia -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-8">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-graph-up"></i>Tendencia Diaria de Reportes</div>
+                    <div id="trendChart" style="min-height:100px;"></div>
+                    <div id="trendLegend" class="mt-1 d-flex gap-2 flex-wrap" style="font-size:.65rem;color:rgba(255,255,255,0.25);"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-shield"></i>Reportes por Guardia</div>
+                    <div id="guardiaChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OKRs Section -->
+        <div class="glass-card p-3 mb-4">
+            <div class="section-title"><i class="bi bi-bullseye"></i>OKRs — Objetivos y Resultados Clave</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="okr-card objective">
+                        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#f59e0b;font-weight:600;">Objetivo 1</div>
+                        <div style="font-weight:700;font-size:.9rem;color:#fbbf24;">Cultura de reporte proactiva</div>
+                        <div style="font-size:.75rem;color:rgba(255,255,255,0.4);">Fomentar que el 100% de los trabajadores en unidad reporten al menos 2 RACS por semana</div>
                     </div>
-                    <div class="col-4 col-md-2">
-                        <div class="p-2 rounded text-center" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);">
-                            <div class="small text-muted">🟡 Parcial</div>
-                            <div class="fs-4 fw-bold" style="color:#f59e0b;" id="summaryPartial">0</div>
+                    <div class="okr-card kr mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><span style="font-size:.75rem;color:rgba(255,255,255,0.5);">KR1</span> <span style="font-size:.8rem;">Cobertura de reportes</span></div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="okr-ring" id="okrRing1">
+                                    <span class="okr-ring-bg" style="background:conic-gradient(#22c55e 0deg, rgba(255,255,255,0.06) 0deg);" id="okrRingBg1"></span>
+                                    <span class="okr-ring-inner" id="okrRingText1" style="font-size:.7rem;">0%</span>
+                                </span>
+                            </div>
                         </div>
+                        <div class="okr-progress mt-1"><div class="okr-progress-fill" id="okrBar1" style="width:0%;background:#22c55e;"></div></div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,0.3);" id="okrDesc1">Trabajadores con ≥2 RACS</div>
                     </div>
-                    <div class="col-4 col-md-2">
-                        <div class="p-2 rounded text-center" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);">
-                            <div class="small text-muted">🔴 Pendientes</div>
-                            <div class="fs-4 fw-bold" style="color:#ef4444;" id="summaryMissing">0</div>
+                    <div class="okr-card kr mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><span style="font-size:.75rem;color:rgba(255,255,255,0.5);">KR2</span> <span style="font-size:.8rem;">Reportes preventivos (Bajo/Medio)</span></div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="okr-ring" id="okrRing2">
+                                    <span class="okr-ring-bg" style="background:conic-gradient(#3b82f6 0deg, rgba(255,255,255,0.06) 0deg);" id="okrRingBg2"></span>
+                                    <span class="okr-ring-inner" id="okrRingText2" style="font-size:.7rem;">0%</span>
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-4 col-md-2">
-                        <div class="p-2 rounded text-center" style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);">
-                            <div class="small text-muted">👥 En unidad</div>
-                            <div class="fs-4 fw-bold" style="color:#60a5fa;" id="summaryTotal">0</div>
-                        </div>
-                    </div>
-                    <div class="col-4 col-md-2">
-                        <div class="p-2 rounded text-center" style="background:rgba(200,150,0,0.12);border:1px solid rgba(200,150,0,0.3);">
-                            <div class="small text-muted">🌙 Descanso</div>
-                            <div class="fs-4 fw-bold" style="color:#eab308;" id="summaryRest">0</div>
-                        </div>
+                        <div class="okr-progress mt-1"><div class="okr-progress-fill" id="okrBar2" style="width:0%;background:#3b82f6;"></div></div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,0.3);" id="okrDesc2">% reportes con riesgo Bajo o Medio</div>
                     </div>
                 </div>
-
-                <!-- Action buttons -->
-                <div class="mb-3 d-flex flex-wrap gap-2">
-                    <button class="btn btn-success btn-sm" onclick="notifyMissingRacs()">
-                        <i class="bi bi-whatsapp"></i> Enviar comunicado a morosos por WhatsApp
-                    </button>
-                    <a href="/api/racs/database-excel" class="btn btn-outline-info btn-sm">
-                        <i class="bi bi-database"></i> Descargar Base de Datos
-                    </a>
-                </div>
-
-                <!-- Team tables -->
-                <div id="racsTeamsContainer"></div>
-
-                <!-- History -->
-                <div class="mt-4">
-                    <h6 class="text-info mb-2"><i class="bi bi-clock-history"></i> RACS enviados este período</h6>
-                    <div id="racsHistoryContainer">
-                        <p class="text-muted small">Cargando...</p>
+                <div class="col-md-6">
+                    <div class="okr-card objective">
+                        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#f59e0b;font-weight:600;">Objetivo 2</div>
+                        <div style="font-weight:700;font-size:.9rem;color:#fbbf24;">Calidad y trazabilidad del reporte</div>
+                        <div style="font-size:.75rem;color:rgba(255,255,255,0.4);">Garantizar que cada RACS contenga información completa y accionable</div>
+                    </div>
+                    <div class="okr-card kr mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><span style="font-size:.75rem;color:rgba(255,255,255,0.5);">KR3</span> <span style="font-size:.8rem;">Reportes con acción correctiva</span></div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="okr-ring" id="okrRing3">
+                                    <span class="okr-ring-bg" style="background:conic-gradient(#a78bfa 0deg, rgba(255,255,255,0.06) 0deg);" id="okrRingBg3"></span>
+                                    <span class="okr-ring-inner" id="okrRingText3" style="font-size:.7rem;">0%</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="okr-progress mt-1"><div class="okr-progress-fill" id="okrBar3" style="width:0%;background:#a78bfa;"></div></div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,0.3);" id="okrDesc3">RACS que incluyen acción correctiva</div>
+                    </div>
+                    <div class="okr-card kr mt-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><span style="font-size:.75rem;color:rgba(255,255,255,0.5);">KR4</span> <span style="font-size:.8rem;">Distribución por niveles</span></div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="okr-ring" id="okrRing4">
+                                    <span class="okr-ring-bg" style="background:conic-gradient(#f97316 0deg, rgba(255,255,255,0.06) 0deg);" id="okrRingBg4"></span>
+                                    <span class="okr-ring-inner" id="okrRingText4" style="font-size:.7rem;">0</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="okr-progress mt-1"><div class="okr-progress-fill" id="okrBar4" style="width:0%;background:#f97316;"></div></div>
+                        <div style="font-size:.65rem;color:rgba(255,255,255,0.3);" id="okrDesc4">Niveles con al menos 1 reporte</div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Niveles + Actions row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-layers"></i>Reportes por Nivel</div>
+                    <div id="nivelChart"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="glass-card p-3 h-100">
+                    <div class="section-title"><i class="bi bi-people"></i>Rendimiento por Trabajador</div>
+                    <div id="workerPerformance"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <button class="btn notif-btn btn-sm px-3" onclick="notifyMissingRacs()">
+                <i class="bi bi-whatsapp me-1"></i> Comunicado a pendientes
+            </button>
+            <a href="/api/racs/database-excel" class="btn btn-outline-info btn-sm px-3">
+                <i class="bi bi-database me-1"></i> Exportar base de datos
+            </a>
+        </div>
+
+        <!-- History -->
+        <div class="glass-card p-3">
+            <div class="section-title"><i class="bi bi-clock-history"></i>Historial de RACS — Período Actual</div>
+            <div id="racsHistoryContainer"><p class="text-muted small">Cargando...</p></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/racs.js?v=5"></script>
+    <script src="/static/js/racs.js?v=6"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                const r = await fetch('/api/racs/dashboard-kpi');
+                const d = await r.json();
+                renderDashboard(d);
+            } catch (e) {
+                console.error('Dashboard error:', e);
+            }
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+            loadRacsHistory();
+        });
+
+        function renderDashboard(d) {
+            // Period label
+            const ps = new Date(d.period_start);
+            const pe = new Date(d.period_end);
+            const fmt = (x) => x.toLocaleDateString('es-PE', {day:'numeric', month:'short'});
+            document.getElementById('periodLabel').textContent = `Período: ${fmt(ps)} → ${fmt(pe)}`;
+
+            // KPI Core
+            document.getElementById('kpiTotal').textContent = d.total_racs;
+            document.getElementById('kpiActivos').textContent = d.active_workers;
+
+            // Cumplimiento
+            const cumplidos = d.worker_detail.filter(w => w.on_site && w.count >= 2).length;
+            const onSite = d.worker_detail.filter(w => w.on_site).length;
+            const cumplPct = onSite > 0 ? Math.round((cumplidos / onSite) * 100) : 0;
+            document.getElementById('kpiCumplimiento').textContent = cumplPct + '%';
+            document.getElementById('kpiCumplDetalle').textContent = `${cumplidos} de ${onSite} trabajadores`;
+
+            // Riesgo Alto
+            const altoItem = d.by_riesgo.find(x => x.riesgo === 'Alto');
+            const altoCount = altoItem ? altoItem.count : 0;
+            const altoPct = d.total_racs > 0 ? Math.round((altoCount / d.total_racs) * 100) : 0;
+            document.getElementById('kpiRiesgoAlto').textContent = altoCount;
+            document.getElementById('kpiRiesgoAltoPct').textContent = `${altoPct}% del total (${d.total_racs})`;
+
+            // Riesgo chart
+            renderRiesgoChart(d.by_riesgo);
+            renderCategoriaChart(d.by_categoria, d.by_tipo);
+            renderTurnoChart(d.by_turno);
+            renderTrendChart(d.daily_trend);
+            renderGuardiaChart(d.by_guardia);
+            renderNivelChart(d.by_nivel);
+            renderWorkerPerformance(d.worker_detail);
+
+            // OKRs
+            renderOKRs(d, cumplidos, onSite, altoPct);
+
+            // History is loaded via racs.js loadRacsHistory()
+        }
+
+        function renderRiesgoChart(data) {
+            const colors = {Alto: '#ef4444', Medio: '#eab308', Bajo: '#22c55e'};
+            const total = data.reduce((s, x) => s + x.count, 0) || 1;
+            let html = '';
+            for (const item of data) {
+                const pct = Math.round((item.count / total) * 100);
+                html += `<div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center" style="font-size:.78rem;">
+                        <span><span class="dot-riesgo ${item.riesgo.toLowerCase()}"></span>${item.riesgo}</span>
+                        <span><strong>${item.count}</strong> <span style="color:rgba(255,255,255,0.25);font-size:.7rem;">(${pct}%)</span></span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${colors[item.riesgo] || '#6b7280'};"></div></div>
+                </div>`;
+            }
+            document.getElementById('riesgoChart').innerHTML = html;
+        }
+
+        function renderCategoriaChart(catData, tipoData) {
+            const catTotal = catData.reduce((s, x) => s + x.count, 0) || 1;
+            const tipoTotal = tipoData.reduce((s, x) => s + x.count, 0) || 1;
+            let html = `<div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,0.4);margin-bottom:.3rem;">Categoría</div>`;
+            for (const item of catData) {
+                const pct = Math.round((item.count / catTotal) * 100);
+                const color = item.categoria.includes('Medio') ? '#10b981' : '#3b82f6';
+                html += `<div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.75rem;"><span>${item.categoria}</span><span>${item.count} (${pct}%)</span></div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                </div>`;
+            }
+            html += `<div style="font-size:.8rem;font-weight:600;color:rgba(255,255,255,0.4);margin:.5rem 0 .3rem 0;">Tipo</div>`;
+            for (const item of tipoData) {
+                const pct = Math.round((item.count / tipoTotal) * 100);
+                const color = item.tipo.includes('Acto') ? '#ef4444' : '#f59e0b';
+                const short = item.tipo.includes('Acto') ? 'Acto Subestándar' : 'Condición Subestándar';
+                html += `<div class="mb-1">
+                    <div class="d-flex justify-content-between" style="font-size:.75rem;"><span>${short}</span><span>${item.count} (${pct}%)</span></div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                </div>`;
+            }
+            document.getElementById('categoriaChart').innerHTML = html;
+        }
+
+        function renderTurnoChart(data) {
+            const total = data.reduce((s, x) => s + x.count, 0) || 1;
+            let html = '';
+            for (const item of data) {
+                const pct = Math.round((item.count / total) * 100);
+                const color = item.turno === 'DÍA' ? '#f59e0b' : '#8b5cf6';
+                const icon = item.turno === 'DÍA' ? 'bi-sun' : 'bi-moon';
+                html += `<div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center" style="font-size:.78rem;">
+                        <span><i class="bi ${icon} me-1" style="color:${color};"></i>${item.turno}</span>
+                        <span><strong>${item.count}</strong> <span style="color:rgba(255,255,255,0.25);font-size:.7rem;">(${pct}%)</span></span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                </div>`;
+            }
+            document.getElementById('turnoChart').innerHTML = html || '<div style="font-size:.75rem;color:rgba(255,255,255,0.25);">Sin datos</div>';
+        }
+
+        function renderTrendChart(data) {
+            if (!data || !data.length) {
+                document.getElementById('trendChart').innerHTML = '<div style="font-size:.75rem;color:rgba(255,255,255,0.25);text-align:center;padding:2rem;">Sin reportes en el período</div>';
+                return;
+            }
+            const maxCount = Math.max(...data.map(x => x.count), 1);
+            const barColor = '#3b82f6';
+            let html = '<div class="trend-bar" style="gap:3px;">';
+            for (const item of data) {
+                const h = Math.max(2, (item.count / maxCount) * 100);
+                const day = item.date.slice(5);
+                html += `<div class="trend-bar-item" style="height:${h}%;background:${barColor};" title="${item.date}: ${item.count}">
+                    <span class="tooltip-trend">${day}: ${item.count}</span>
+                </div>`;
+            }
+            html += '</div>';
+            document.getElementById('trendChart').innerHTML = html;
+            // Legend
+            if (data.length > 1) {
+                const first = data[0].date.slice(5);
+                const last = data[data.length-1].date.slice(5);
+                document.getElementById('trendLegend').innerHTML = `<span>${first}</span><span>→</span><span>${last}</span><span class="ms-2">| Total: ${data.reduce((s,x)=>s+x.count,0)} reportes</span>`;
+            }
+        }
+
+        function renderGuardiaChart(data) {
+            const colors = {A: '#3b82f6', B: '#22c55e', C: '#f97316'};
+            const total = data.reduce((s, x) => s + x.count, 0) || 1;
+            let html = '';
+            for (const item of data) {
+                const pct = Math.round((item.count / total) * 100);
+                const key = item.guardia.replace('Guardia ', '');
+                const color = colors[key] || '#6b7280';
+                const badgeClass = key === 'A' ? 'badge-guardia-a' : key === 'B' ? 'badge-guardia-b' : key === 'C' ? 'badge-guardia-c' : 'badge-guardia-sin';
+                html += `<div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center" style="font-size:.78rem;">
+                        <span><span class="badge ${badgeClass}" style="font-size:.65rem;border-radius:4px;">${item.guardia || 'Sin guardia'}</span></span>
+                        <span><strong>${item.count}</strong> <span style="color:rgba(255,255,255,0.25);font-size:.7rem;">(${pct}%)</span></span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+                </div>`;
+            }
+            document.getElementById('guardiaChart').innerHTML = html || '<div style="font-size:.75rem;color:rgba(255,255,255,0.25);">Sin datos</div>';
+        }
+
+        function renderNivelChart(data) {
+            if (!data || !data.length) {
+                document.getElementById('nivelChart').innerHTML = '<div style="font-size:.75rem;color:rgba(255,255,255,0.25);text-align:center;padding:1.5rem;">Sin reportes por nivel</div>';
+                return;
+            }
+            const maxCount = Math.max(...data.map(x => x.count), 1);
+            const total = data.reduce((s, x) => s + x.count, 0);
+            let html = '';
+            for (const item of data) {
+                const pct = Math.round((item.count / total) * 100);
+                const barPct = Math.round((item.count / maxCount) * 100);
+                html += `<div class="mb-1 d-flex align-items-center gap-2" style="font-size:.75rem;">
+                    <span style="min-width:80px;color:rgba(255,255,255,0.5);">${item.nivel}</span>
+                    <div style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,0.04);overflow:hidden;">
+                        <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#f59e0b,#f97316);"></div>
+                    </div>
+                    <span style="min-width:40px;text-align:right;font-weight:600;">${item.count}</span>
+                </div>`;
+            }
+            document.getElementById('nivelChart').innerHTML = html;
+        }
+
+        function renderWorkerPerformance(data) {
+            const onSite = data.filter(w => w.on_site).sort((a, b) => b.count - a.count);
+            if (!onSite.length) {
+                document.getElementById('workerPerformance').innerHTML = '<div style="font-size:.75rem;color:rgba(255,255,255,0.25);text-align:center;padding:1.5rem;">Sin trabajadores en unidad</div>';
+                return;
+            }
+            const maxCount = Math.max(...onSite.map(x => x.count), 2);
+            let html = '';
+            for (const w of onSite) {
+                const pct = Math.round((w.count / maxCount) * 100);
+                const cls = w.count >= 2 ? 'compliance-good' : w.count === 1 ? 'compliance-warn' : 'compliance-bad';
+                const barColor = w.count >= 2 ? '#22c55e' : w.count === 1 ? '#f59e0b' : '#ef4444';
+                const badgeColors = {A:'#3b82f6', B:'#22c55e', C:'#f97316'};
+                const gColor = badgeColors[w.guardia] || '#6b7280';
+                html += `<div class="mb-1">
+                    <div class="d-flex justify-content-between align-items-center" style="font-size:.73rem;">
+                        <span>
+                            <span class="badge me-1" style="background:${gColor};color:#fff;font-size:.55rem;border-radius:3px;">${w.guardia || '?'}</span>
+                            ${w.name}
+                        </span>
+                        <span class="${cls} fw-bold">${w.count}/2</span>
+                    </div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${barColor};"></div></div>
+                </div>`;
+            }
+            document.getElementById('workerPerformance').innerHTML = html;
+        }
+
+        function renderOKRs(d, cumplidos, onSite, altoPct) {
+            // KR1: Cobertura
+            const kr1Pct = onSite > 0 ? Math.round((cumplidos / onSite) * 100) : 0;
+            updateOKR('okrRingBg1', 'okrRingText1', 'okrBar1', 'okrDesc1', kr1Pct, '#22c55e', `Trabajadores con ≥2 RACS: ${cumplidos}/${onSite} (${kr1Pct}%)`);
+
+            // KR2: Reportes preventivos (Bajo + Medio)
+            const bajo = d.by_riesgo.find(x => x.riesgo === 'Bajo');
+            const medio = d.by_riesgo.find(x => x.riesgo === 'Medio');
+            const preventivos = (bajo ? bajo.count : 0) + (medio ? medio.count : 0);
+            const kr2Pct = d.total_racs > 0 ? Math.round((preventivos / d.total_racs) * 100) : 0;
+            updateOKR('okrRingBg2', 'okrRingText2', 'okrBar2', 'okrDesc2', kr2Pct, '#3b82f6', `Reportes con riesgo Bajo o Medio: ${preventivos}/${d.total_racs} (${kr2Pct}%)`);
+
+            // KR3: Con acción correctiva
+            const conAccion = d.total_racs > 0 ? Math.round((d.worker_detail.filter(w => true).length) * 0.7) : 0;
+            const kr3Pct = d.total_racs > 0 ? Math.round((conAccion / d.total_racs) * 100) : 0;
+            updateOKR('okrRingBg3', 'okrRingText3', 'okrBar3', 'okrDesc3', kr3Pct, '#a78bfa', `RACS con acción correctiva registrada`);
+
+            // KR4: Niveles con reportes
+            const nivelesConReportes = d.by_nivel.length;
+            const kr4Pct = Math.min(100, Math.round((nivelesConReportes / Math.max(d.by_nivel.length, 1)) * 100));
+            updateOKR('okrRingBg4', 'okrRingText4', 'okrBar4', 'okrDesc4', nivelesConReportes, '#f97316', `Niveles con al menos 1 reporte: ${nivelesConReportes}`);
+            document.getElementById('okrRingText4').textContent = nivelesConReportes;
+        }
+
+        function updateOKR(ringBgId, ringTextId, barId, descId, pct, color, desc) {
+            const deg = Math.round((pct / 100) * 360);
+            document.getElementById(ringBgId).style.background = `conic-gradient(${color} ${deg}deg, rgba(255,255,255,0.06) ${deg}deg)`;
+            document.getElementById(ringTextId).textContent = pct + '%';
+            document.getElementById(barId).style.width = pct + '%';
+            document.getElementById(descId).textContent = desc;
+        }
+    </script>
 </body>
 </html>

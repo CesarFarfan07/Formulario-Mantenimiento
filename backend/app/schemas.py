@@ -127,6 +127,8 @@ class RacsReportCreate(BaseModel):
     descripcion: Optional[str] = None
     ubicacion: Optional[str] = None
     referencia: Optional[str] = None
+    nivel: Optional[str] = None
+    fecha_reporte: Optional[str] = None
     riesgo: Optional[str] = None
     accion_correctiva: Optional[str] = None
     tipo_descripcion: Optional[str] = None
@@ -142,6 +144,8 @@ class RacsReportResponse(BaseModel):
     descripcion: Optional[str] = None
     ubicacion: Optional[str] = None
     referencia: Optional[str] = None
+    nivel: Optional[str] = None
+    fecha_reporte: Optional[datetime.date] = None
     riesgo: Optional[str] = None
     accion_correctiva: Optional[str] = None
     tipo_descripcion: Optional[str] = None

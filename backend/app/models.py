@@ -164,6 +164,8 @@ class RacsReport(Base):
     descripcion = Column(Text, nullable=True)
     ubicacion = Column(String(200), nullable=True)
     referencia = Column(String(300), nullable=True)
+    nivel = Column(String(100), nullable=True)
+    fecha_reporte = Column(Date, nullable=True)
     riesgo = Column(String(20), nullable=True)
     turno = Column(String(10), nullable=True)
     accion_correctiva = Column(Text, nullable=True)

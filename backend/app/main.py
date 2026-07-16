@@ -208,6 +208,20 @@ try:
     _d.close()
     print("[MIGRACION] Columna referencia agregada a racs_reports")
 except: _d.rollback(); _d.close()
+try:
+    _d = SessionLocal()
+    _d.execute(_st("ALTER TABLE racs_reports ADD COLUMN nivel VARCHAR(100)"))
+    _d.commit()
+    _d.close()
+    print("[MIGRACION] Columna nivel agregada a racs_reports")
+except: _d.rollback(); _d.close()
+try:
+    _d = SessionLocal()
+    _d.execute(_st("ALTER TABLE racs_reports ADD COLUMN fecha_reporte DATE"))
+    _d.commit()
+    _d.close()
+    print("[MIGRACION] Columna fecha_reporte agregada a racs_reports")
+except: _d.rollback(); _d.close()
 print("[OK] Indices verificados")
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
@@ -1553,6 +1567,13 @@ def racs_get_workers(db: Session = Depends(get_db)):
 def racs_create(data: RacsReportCreate, db: Session = Depends(get_db)):
     ps, pe = _get_racs_period()
     from datetime import timezone
+    import datetime as dt_mod
+    fecha = None
+    if data.fecha_reporte:
+        try:
+            fecha = dt_mod.datetime.strptime(data.fecha_reporte, "%Y-%m-%d").date()
+        except:
+            fecha = dt_mod.datetime.utcnow().date()
     r = RacsReport(
         worker_name=data.worker_name,
         group_name=data.group_name,
@@ -1562,12 +1583,14 @@ def racs_create(data: RacsReportCreate, db: Session = Depends(get_db)):
         descripcion=data.descripcion,
         ubicacion=data.ubicacion,
         referencia=data.referencia,
+        nivel=data.nivel,
+        fecha_reporte=fecha,
         riesgo=data.riesgo,
         accion_correctiva=data.accion_correctiva,
         tipo_descripcion=data.tipo_descripcion,
         period_start=ps,
         period_end=pe,
-        created_at=datetime.now(timezone.utc),
+        created_at=dt_mod.datetime.now(timezone.utc),
     )
     db.add(r)
     db.commit()
@@ -1650,6 +1673,98 @@ def racs_dashboard_data(db: Session = Depends(get_db)):
     }
 
 
+@app.get("/api/racs/dashboard-kpi")
+def racs_dashboard_kpi(db: Session = Depends(get_db)):
+    ps, pe = _get_racs_period()
+    wg_map = _get_worker_guardias(db)
+
+    all_reports = db.query(RacsReport).filter(
+        RacsReport.period_start == ps, RacsReport.period_end == pe
+    ).all()
+
+    total = len(all_reports)
+
+    # Counts by dimension
+    cat_count = {"Seguridad y Salud Ocupacional": 0, "Medio Ambiente": 0}
+    tipo_count = {"Acto Subestándar": 0, "Condición Subestándar": 0}
+    riesgo_count = {"Alto": 0, "Medio": 0, "Bajo": 0}
+    turno_count = {"DÍA": 0, "NOCHE": 0}
+    nivel_count = {}
+    guardia_count = {}
+    daily_count = {}
+    worker_racs = {}  # worker -> {count, category_counts, tipo_counts, riesgo_counts}
+
+    for r in all_reports:
+        cat = r.categoria or "Sin categoría"
+        if cat in cat_count: cat_count[cat] += 1
+        tp = r.tipo or "Sin tipo"
+        if tp in tipo_count: tipo_count[tp] += 1
+        rg = r.riesgo or "Sin riesgo"
+        if rg in riesgo_count: riesgo_count[rg] += 1
+        tn = r.turno or "Sin turno"
+        if tn in turno_count: turno_count[tn] += 1
+
+        nv = r.nivel or "Sin nivel"
+        nivel_count[nv] = nivel_count.get(nv, 0) + 1
+
+        g = wg_map.get((r.worker_name, r.group_name), "Sin guardia")
+        guardia_count[g] = guardia_count.get(g, 0) + 1
+
+        day_key = r.created_at.strftime("%Y-%m-%d")
+        daily_count[day_key] = daily_count.get(day_key, 0) + 1
+
+        wk = (r.worker_name, r.group_name)
+        if wk not in worker_racs:
+            worker_racs[wk] = {"count": 0, "cat": {}, "tipo": {}, "riesgo": {}, "guardia": g}
+        worker_racs[wk]["count"] += 1
+        worker_racs[wk]["cat"][cat] = worker_racs[wk]["cat"].get(cat, 0) + 1
+        worker_racs[wk]["tipo"][tp] = worker_racs[wk]["tipo"].get(tp, 0) + 1
+        worker_racs[wk]["riesgo"][rg] = worker_racs[wk]["riesgo"].get(rg, 0) + 1
+
+    # Worker compliance
+    all_workers = _get_all_workers(db)
+    active_workers = 0
+    for w in all_workers:
+        g = wg_map.get((w["name"], w["group_name"]), "")
+        if _is_guardia_on_site(g, db=db):
+            active_workers += 1
+
+    # Sort daily trend
+    daily_trend = [{"date": k, "count": v} for k, v in sorted(daily_count.items())]
+
+    # Worker detail for compliance
+    worker_detail = []
+    for (name, group), data in worker_racs.items():
+        g = data["guardia"]
+        on_site = _is_guardia_on_site(g, db=db)
+        worker_detail.append({
+            "name": name,
+            "group": group,
+            "count": data["count"],
+            "guardia": g,
+            "on_site": on_site,
+            "riesgos": data["riesgo"],
+        })
+
+    # Sort nivel_count
+    nivel_sorted = [{"nivel": k, "count": v} for k, v in sorted(nivel_count.items(), key=lambda x: -x[1])]
+
+    return {
+        "total_racs": total,
+        "active_workers": active_workers,
+        "period_start": ps.isoformat(),
+        "period_end": pe.isoformat(),
+        "by_categoria": [{"categoria": k, "count": v} for k, v in cat_count.items()],
+        "by_tipo": [{"tipo": k, "count": v} for k, v in tipo_count.items()],
+        "by_riesgo": [{"riesgo": k, "count": v} for k, v in riesgo_count.items()],
+        "by_turno": [{"turno": k, "count": v} for k, v in turno_count.items()],
+        "by_nivel": nivel_sorted,
+        "by_guardia": [{"guardia": k, "count": v} for k, v in sorted(guardia_count.items())],
+        "daily_trend": daily_trend,
+        "worker_detail": worker_detail,
+    }
+
+
 @app.get("/api/racs/list")
 def racs_list(db: Session = Depends(get_db)):
     ps, pe = _get_racs_period()
@@ -1670,6 +1785,8 @@ def racs_list(db: Session = Depends(get_db)):
             "descripcion": r.descripcion,
             "ubicacion": r.ubicacion,
             "referencia": r.referencia,
+            "nivel": r.nivel,
+            "fecha_reporte": (r.fecha_reporte.isoformat() if r.fecha_reporte else None),
             "riesgo": r.riesgo,
             "accion_correctiva": r.accion_correctiva,
             "tipo_descripcion": r.tipo_descripcion,
@@ -1723,8 +1840,9 @@ def racs_download_excel(racs_id: int, db: Session = Depends(get_db)):
     # Datos Generales
     _set_cell("C6", f"Reportado por: {r.worker_name}")
     _set_cell("P6", f"Cargo: Operador")
-    _set_cell("C7", f"Fecha: {r.created_at.strftime('%d/%m/%Y')}")
-    _set_cell("J7", f"Turno: Día")
+    fecha_str = r.fecha_reporte.strftime('%d/%m/%Y') if r.fecha_reporte else r.created_at.strftime('%d/%m/%Y')
+    _set_cell("C7", f"Fecha: {fecha_str}")
+    _set_cell("J7", f"Turno: {r.turno or 'DÍA'}")
     _set_cell("O7", f"Hora: {r.created_at.strftime('%H:%M')}")
     g_name = ""
     wg = _get_worker_guardias(db)
@@ -1737,9 +1855,7 @@ def racs_download_excel(racs_id: int, db: Session = Depends(get_db)):
             g_name = f"{guardia_name} (día {cycle+1}/30)" if cycle < 20 else f"{guardia_name} (descanso)"
     _set_cell("T7", f"Guardia: {g_name or guardia_name}")
     _set_cell("C8", "Empresa: U.M. Soledad")
-    area = db.query(Nivel).first()
-    nivel = area.name if area else ""
-    _set_cell("K8", f"Nivel: {nivel}")
+    _set_cell("K8", f"Nivel: {r.nivel or ''}")
     _set_cell("O8", f"Labor / Lugar: {r.ubicacion or ''}")
 
     # Tipo checkboxes
@@ -1765,11 +1881,13 @@ def racs_download_excel(racs_id: int, db: Session = Depends(get_db)):
         desc_part = parts[1] if len(parts) > 1 else ""
         # Search in checklist rows
         for row in range(25, 39):
-            for col in ['D', 'K', 'R']:
-                cell = ws[f'{col}{row}']
+            for col_letter in ['D', 'K', 'R']:
+                cell = ws[f'{col_letter}{row}']
                 if cell.value and desc_part and desc_part.strip().lower() in str(cell.value).strip().lower():
-                    ws[f'{col}{row}'].font = openpyxl.styles.Font(bold=True, color="FF0000", size=9)
-                    ws[f'{col-1}{row}'].font = openpyxl.styles.Font(bold=True, color="FF0000", size=9)
+                    col_idx = openpyxl.utils.column_index_from_string(col_letter) - 1
+                    prev_letter = openpyxl.utils.get_column_letter(col_idx)
+                    ws[f'{col_letter}{row}'].font = openpyxl.styles.Font(bold=True, color="FF0000", size=9)
+                    ws[f'{prev_letter}{row}'].font = openpyxl.styles.Font(bold=True, color="FF0000", size=9)
 
     # Risk level
     riesgo_mapping = {"Alto": "C40", "Medio": "E40", "Bajo": "G40"}
@@ -1795,11 +1913,6 @@ def racs_download_excel(racs_id: int, db: Session = Depends(get_db)):
 
 
 # ─── Guardia admin endpoints ──────────────────────────────────────────────────
-
-
-@app.get("/guardias", response_class=HTMLResponse)
-def guardias_page(request: Request):
-    return templates.TemplateResponse("guardias.html", {"request": request})
 
 
 @app.get("/api/guardias")
@@ -1901,10 +2014,21 @@ def racs_worker_update(worker_id: int, data: RacsWorkerUpdate, db: Session = Dep
     obj = db.query(RacsWorker).filter(RacsWorker.id == worker_id).first()
     if not obj:
         raise HTTPException(404)
+    old_name = obj.name
+    old_group = obj.group_name
     if data.name is not None: obj.name = data.name
     if data.group_name is not None: obj.group_name = data.group_name
     if data.cargo is not None: obj.cargo = data.cargo
     if data.active is not None: obj.active = data.active
+    # Sync WorkerGuardia if name or group changed
+    if (data.name is not None or data.group_name is not None) and (old_name != obj.name or old_group != obj.group_name):
+        wg = db.query(WorkerGuardia).filter(
+            WorkerGuardia.worker_name == old_name,
+            WorkerGuardia.group_name == old_group
+        ).first()
+        if wg:
+            wg.worker_name = obj.name
+            wg.group_name = obj.group_name
     if data.guardia is not None:
         existing_wg = db.query(WorkerGuardia).filter(
             WorkerGuardia.worker_name == obj.name,
@@ -1921,7 +2045,8 @@ def racs_worker_update(worker_id: int, data: RacsWorkerUpdate, db: Session = Dep
         elif existing_wg:
             db.delete(existing_wg)
     db.commit()
-    return {"ok": True}
+    db.refresh(obj)
+    return {"ok": True, "id": obj.id, "name": obj.name, "group_name": obj.group_name, "cargo": obj.cargo}
 
 
 @app.post("/api/racs/workers/change-group")
@@ -1941,6 +2066,40 @@ def racs_worker_change_group(data: dict = Body(...), db: Session = Depends(get_d
         wg.group_name = new_group
     db.commit()
     return {"ok": True}
+
+
+@app.get("/api/racs/groups")
+def racs_get_groups(db: Session = Depends(get_db)):
+    """Return distinct group names from active RACS workers."""
+    q = db.query(RacsWorker.group_name).filter(RacsWorker.active == True).distinct().order_by(RacsWorker.group_name).all()
+    return [g[0] for g in q]
+
+
+@app.put("/api/racs/workers/{worker_id}")
+def racs_worker_update(worker_id: int, data: RacsWorkerUpdate, db: Session = Depends(get_db)):
+    obj = db.query(RacsWorker).filter(RacsWorker.id == worker_id).first()
+    if not obj:
+        raise HTTPException(404, "Trabajador no encontrado")
+    old_name = obj.name
+    old_group = obj.group_name
+    if data.name is not None:
+        obj.name = data.name
+    if data.group_name is not None:
+        obj.group_name = data.group_name
+    if data.cargo is not None:
+        obj.cargo = data.cargo
+    # Sync WorkerGuardia if name or group changed
+    if data.name is not None or data.group_name is not None:
+        wg = db.query(WorkerGuardia).filter(
+            WorkerGuardia.worker_name == old_name,
+            WorkerGuardia.group_name == old_group
+        ).first()
+        if wg:
+            wg.worker_name = obj.name
+            wg.group_name = obj.group_name
+    db.commit()
+    db.refresh(obj)
+    return {"ok": True, "id": obj.id, "name": obj.name, "group_name": obj.group_name, "cargo": obj.cargo}
 
 
 @app.delete("/api/racs/workers/delete-by-name")
@@ -1974,7 +2133,7 @@ def racs_database_excel(db: Session = Depends(get_db)):
     from openpyxl.styles import Font as XlFont, Alignment as XlAlign, PatternFill as XlFill, Border as XlBorder, Side as XlSide
     from openpyxl.utils import get_column_letter
 
-    reports = db.query(RacsReport).order_by(RacsReport.created_at.desc()).all()
+    reports = db.query(RacsReport).order_by(RacsReport.created_at.asc()).all()
     wg_map = _get_worker_guardias(db)
     cargo_map = _get_worker_cargos(db)
 
@@ -2060,15 +2219,16 @@ def racs_database_excel(db: Session = Depends(get_db)):
     for idx, r in enumerate(reports, 1):
         row_num = 5 + idx
         dt_local = r.created_at
+        fecha_reporte = r.fecha_reporte or dt_local
         mes = meses[dt_local.month - 1]
         semana = f"SEM {dt_local.isocalendar()[1]:02d}"
         guardia = wg_map.get((r.worker_name, r.group_name), "")
         cargo = cargo_map.get((r.worker_name, r.group_name), "")
 
         values = [
-            idx, semana, mes, dt_local.strftime("%d/%m/%Y"), "MINA",
+            idx, semana, mes, fecha_reporte.strftime("%d/%m/%Y"), "MINA",
             r.tipo, guardia, r.turno or "DÍA",
-            r.worker_name, cargo, 0,
+            r.worker_name, cargo, r.nivel or "",
             f"{r.ubicacion or ''} / Ref: {r.referencia or ''}",
             r.descripcion or "", r.accion_correctiva or "", r.tipo_descripcion or "",
             "", r.riesgo or "", "EJECUTADO",

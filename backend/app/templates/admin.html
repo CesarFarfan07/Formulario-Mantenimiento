@@ -49,7 +49,7 @@
                 <li class="nav-item"><button class="nav-link text-info" data-tab="trackless" onclick="switchMainTab('trackless')"><i class="bi bi-truck"></i> Mantto. Trackless</button></li>
                 <li class="nav-item"><button class="nav-link text-success" data-tab="convencional" onclick="switchMainTab('convencional')"><i class="bi bi-tools"></i> Mantto. Convencional</button></li>
                 <li class="nav-item"><button class="nav-link text-warning" data-tab="electrico" onclick="switchMainTab('electrico')"><i class="bi bi-lightning"></i> Mantto. Eléctrico</button></li>
-                <li class="nav-item"><button class="nav-link text-info" data-tab="racs" onclick="switchMainTab('racs')"><i class="bi bi-people"></i> Personal RACS</button></li>
+                <li class="nav-item"><button class="nav-link text-info" data-tab="racs" onclick="switchMainTab('racs')"><i class="bi bi-people"></i> Personal Inv. Prosol</button></li>
             </ul>
 
             <!-- Panel: Config. General (Equipos, Colaboradores, Niveles, Turnos) -->
@@ -111,7 +111,7 @@
                             <div class="card-body">
                                 <div class="table-responsive">
                                     <table class="table table-dark table-sm align-middle mb-0">
-                                        <thead><tr><th>Guardia</th><th>Inicio de ciclo</th><th>Estado hoy</th><th>Día del ciclo</th></tr></thead>
+                                        <thead><tr><th>Guardia</th><th>Ciclo (trabajo → descanso)</th><th>Inicio de ciclo</th><th>Estado hoy</th><th>Día</th></tr></thead>
                                         <tbody id="adminGuardiaPhases"></tbody>
                                     </table>
                                 </div>
@@ -195,6 +195,7 @@
                         <label class="form-label small">Guardia</label>
                         <select class="form-select" id="racsNewGuardia"><option value="">Sin guardia</option></select>
                     </div>
+                    <input type="hidden" id="racsEditWorkerId" value="">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -208,6 +209,7 @@
     <script>
     // ─── RACS Admin: inline management ──────────────────────────────────────
     let _racsAdminData = null;
+    let _racsGroups = ['Trackless','Convencional','Electrico'];
 
     function switchMainTab(tab) {
         document.querySelectorAll('.main-tab-content').forEach(el => el.classList.add('d-none'));
@@ -221,29 +223,61 @@
 
     function loadRacsAdmin() {
         Promise.all([
-            fetch('/api/guardias').then(r => r.json())
-        ]).then(([data]) => {
+            fetch('/api/guardias').then(r => r.json()),
+            fetch('/api/racs/groups').then(r => r.json())
+        ]).then(([data, groups]) => {
             _racsAdminData = data;
+            _racsGroups = groups.length ? groups : ['Trackless','Convencional','Electrico'];
             renderAdminGuardiaPhases();
             renderAdminWorkers();
         }).catch(e => document.getElementById('adminRacsWorkers').innerHTML = `<div class="alert alert-danger">Error: ${e.message}</div>`);
     }
 
+    function calcGuardiaCycle(phaseStart) {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const d1 = new Date(phaseStart + 'T00:00:00');
+        const elapsed = Math.floor((today - d1) / (1000*60*60*24));
+        const cycleDay = ((elapsed % 30) + 30) % 30;
+        const onSite = cycleDay < 20;
+        const dStart = new Date(d1);
+        const dWorkEnd = new Date(d1); dWorkEnd.setDate(dWorkEnd.getDate() + 19);
+        const dRestStart = new Date(d1); dRestStart.setDate(dRestStart.getDate() + 20);
+        const dRestEnd = new Date(d1); dRestEnd.setDate(dRestEnd.getDate() + 29);
+        const dNext = new Date(d1); dNext.setDate(dNext.getDate() + 30);
+        const fmt = (d) => d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+        return { cycleDay, onSite, dStart, dWorkEnd, dRestStart, dRestEnd, dNext, today,
+            workRange: `${fmt(dStart)} → ${fmt(dWorkEnd)}`,
+            restRange: `${fmt(dRestStart)} → ${fmt(dRestEnd)}`,
+        };
+    }
+
+    function updateGuardiaRow(gName) {
+        const inp = document.getElementById(`adminPhase_${gName}`);
+        if (!inp) return;
+        const c = calcGuardiaCycle(inp.value);
+        const stateEl = document.getElementById(`state_${gName}`);
+        const dayEl = document.getElementById(`day_${gName}`);
+        const rangeEl = document.getElementById(`range_${gName}`);
+        if (stateEl) {
+            stateEl.textContent = c.onSite ? 'En unidad' : 'Descanso';
+            stateEl.className = c.onSite ? 'text-success fw-bold' : 'text-danger fw-bold';
+        }
+        if (dayEl) dayEl.textContent = `${c.cycleDay}/30`;
+        if (rangeEl) rangeEl.textContent = `${c.workRange}  |  ${c.restRange}`;
+    }
+
     function renderAdminGuardiaPhases() {
-        const today = new Date().toISOString().slice(0,10);
         let html = '';
         for (const g of (_racsAdminData?.guardias || [])) {
             const ps = g.phase_start.slice(0,10);
-            const d1 = new Date(ps);
-            const d2 = new Date(today);
-            const elapsed = Math.floor((d2 - d1) / (1000*60*60*24));
-            const cycleDay = ((elapsed % 30) + 30) % 30;
-            const onSite = cycleDay < 20;
+            const c = calcGuardiaCycle(ps);
             html += `<tr>
                 <td class="fw-bold">Guardia ${g.name}</td>
-                <td><input type="date" class="form-control form-control-sm bg-dark text-light border-secondary" style="max-width:170px;" value="${ps}" id="adminPhase_${g.name}" data-orig="${ps}"></td>
-                <td class="${onSite ? 'text-success' : 'text-danger'} fw-bold">${onSite ? 'En unidad' : 'Descanso'}</td>
-                <td>${cycleDay}/30</td>
+                <td id="range_${g.name}" style="font-size:.8rem;color:rgba(255,255,255,0.6);">${c.workRange}  |  ${c.restRange}</td>
+                <td><input type="date" class="form-control form-control-sm bg-dark text-light border-secondary" style="max-width:150px;" value="${ps}" id="adminPhase_${g.name}" data-orig="${ps}" onchange="updateGuardiaRow('${g.name}')"></td>
+                <td id="state_${g.name}" class="${c.onSite ? 'text-success' : 'text-danger'} fw-bold">${c.onSite ? 'En unidad' : 'Descanso'}</td>
+                <td id="day_${g.name}">${c.cycleDay}/30</td>
             </tr>`;
         }
         document.getElementById('adminGuardiaPhases').innerHTML = html;
@@ -262,7 +296,7 @@
                         <thead><tr><th>Trabajador</th><th>Grupo</th><th>Cargo</th><th>Guardia</th><th></th></tr></thead>
                         <tbody>`;
             for (const w of team.workers) {
-                const groupOptions = ['Trackless','Convencional','Electrico','Supervisores','Administrativo'].map(g =>
+                const groupOptions = _racsGroups.map(g =>
                     `<option value="${g}" ${g === team.group ? 'selected' : ''}>${g}</option>`
                 ).join('');
                 html += `<tr>
@@ -275,7 +309,10 @@
                             ${(_racsAdminData?.guardias || []).map(g => `<option value="${g.name}" ${g.name === w.guardia ? 'selected' : ''}>Guardia ${g.name}</option>`).join('')}
                         </select>
                     </td>
-                    <td><button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteRacsWorker('${team.group}','${w.name}')" title="Desactivar"><i class="bi bi-trash"></i></button></td>
+                    <td class="text-nowrap">
+                        <button class="btn btn-outline-info btn-sm py-0 px-1 me-1" onclick="editRacsWorker('${team.group}','${w.name}')" title="Editar"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-outline-danger btn-sm py-0 px-1" onclick="deleteRacsWorker('${team.group}','${w.name}')" title="Desactivar"><i class="bi bi-trash"></i></button>
+                    </td>
                 </tr>`;
             }
             html += `</tbody></table></div></div>`;
@@ -327,10 +364,14 @@
     }
 
     function showAddRacsWorker() {
+        document.getElementById('racsWorkerModalTitle').textContent = 'Nuevo trabajador';
+        document.getElementById('racsEditWorkerId').value = '';
         document.getElementById('racsNewName').value = '';
         document.getElementById('racsNewCargo').value = '';
-        document.getElementById('racsNewGroup').value = 'Trackless';
         document.getElementById('racsNewGroupCustom').value = '';
+        const groupSel = document.getElementById('racsNewGroup');
+        groupSel.innerHTML = _racsGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+        groupSel.value = '';
         const sel = document.getElementById('racsNewGuardia');
         sel.innerHTML = '<option value="">Sin guardia</option>';
         for (const g of (_racsAdminData?.guardias || [])) {
@@ -340,30 +381,84 @@
         modal.show();
     }
 
+    function editRacsWorker(group, name) {
+        document.getElementById('racsWorkerModalTitle').textContent = 'Editar trabajador';
+        document.getElementById('racsNewName').value = name;
+        document.getElementById('racsNewCargo').value = '';
+        document.getElementById('racsNewGroupCustom').value = '';
+        const groupSel = document.getElementById('racsNewGroup');
+        groupSel.innerHTML = _racsGroups.map(g => `<option value="${g}" ${g === group ? 'selected' : ''}>${g}</option>`).join('');
+        const sel = document.getElementById('racsNewGuardia');
+        sel.innerHTML = '<option value="">Sin guardia</option>';
+        const match = _racsAdminData?.workers.filter(t => t.workers.some(w => w.name === name))[0];
+        const worker = match?.workers.find(w => w.name === name);
+        for (const g of (_racsAdminData?.guardias || [])) {
+            sel.innerHTML += `<option value="${g.name}" ${g.name === (worker?.guardia || '') ? 'selected' : ''}>Guardia ${g.name}</option>`;
+        }
+        const cargoInput = document.getElementById('racsNewCargo');
+        cargoInput.value = worker?.cargo || '';
+        document.getElementById('racsEditWorkerId').value = name + '|' + group;
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('racsWorkerModal'));
+        modal.show();
+    }
+
     function saveRacsWorker() {
         const name = document.getElementById('racsNewName').value.trim();
         const group = document.getElementById('racsNewGroupCustom').value.trim() || document.getElementById('racsNewGroup').value;
         const cargo = document.getElementById('racsNewCargo').value.trim();
         const guardia = document.getElementById('racsNewGuardia').value;
+        const editId = document.getElementById('racsEditWorkerId').value;
         if (!name) { showRacsToast('Ingresa el nombre', 'danger'); return; }
-        fetch('/api/racs/workers/create', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({name, group_name: group, cargo})
-        }).then(r => {
-            if (!r.ok) return r.text().then(t => { throw new Error(t); });
-            return r.json();
-        }).then(data => {
-            if (guardia) {
-                return fetch('/api/guardias/update', {
+
+        let savePromise;
+        if (editId) {
+            // Edit mode
+            const [oldName, oldGroup] = editId.split('|');
+            savePromise = fetch(`/api/guardias/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action:'assign_worker', worker_name:oldName, group_name:oldGroup, guardia, cargo})
+            }).then(r => r.json()).then(() => {
+                return fetch('/api/racs/workers/change-group', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({action:'assign_worker', worker_name:name, group_name:group, guardia})
+                    body: JSON.stringify({name:oldName, old_group:oldGroup, new_group:group})
                 }).then(r => r.json());
-            }
-        }).then(() => {
+            }).then(() => {
+                if (oldName !== name || oldGroup !== group) {
+                    // Find worker ID by old name+group
+                    return fetch(`/api/racs/workers/delete-by-name?name=${encodeURIComponent(oldName)}&group=${encodeURIComponent(oldGroup)}`, { method:'DELETE' }).then(r => r.json()).then(() => {
+                        return fetch('/api/racs/workers/create', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({name, group_name: group, cargo})
+                        }).then(r => r.json());
+                    });
+                }
+            });
+        } else {
+            // Create mode
+            savePromise = fetch('/api/racs/workers/create', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, group_name: group, cargo})
+            }).then(r => {
+                if (!r.ok) return r.text().then(t => { throw new Error(t); });
+                return r.json();
+            }).then(data => {
+                if (guardia) {
+                    return fetch('/api/guardias/update', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({action:'assign_worker', worker_name:name, group_name:group, guardia})
+                    }).then(r => r.json());
+                }
+            });
+        }
+
+        savePromise.then(() => {
             bootstrap.Modal.getInstance(document.getElementById('racsWorkerModal')).hide();
-            showRacsToast('Trabajador agregado');
+            showRacsToast(editId ? 'Trabajador actualizado' : 'Trabajador agregado');
             loadRacsAdmin();
         }).catch(e => showRacsToast('Error: ' + e.message, 'danger'));
     }

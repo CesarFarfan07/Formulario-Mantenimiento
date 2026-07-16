@@ -181,10 +181,14 @@ async function submitRacs(e) {
     const ubicacion = document.getElementById('racsUbicacion').value.trim();
     const referencia = document.getElementById('racsReferencia').value.trim();
     const riesgo = document.getElementById('racsRiesgo').value;
+    const nivel = document.getElementById('racsNivel').value;
+    const fechaReporte = document.getElementById('racsFechaDisplay').value;
     const sendWA = document.getElementById('racsWAToggle')?.classList.contains('btn-success');
 
     if (!workerName) { alert('Selecciona un trabajador'); btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-check"></i> ENVIAR REPORTE RACS'; return; }
     if (!referencia) { alert('Escribe una referencia del lugar'); document.getElementById('racsReferencia').focus(); btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-check"></i> ENVIAR REPORTE RACS'; return; }
+    if (!descripcion) { alert('Describe el reporte observado'); document.getElementById('racsDescripcion').focus(); btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-check"></i> ENVIAR REPORTE RACS'; return; }
+    if (!accionCorrectiva) { alert('Escribe la acción correctiva propuesta o realizada'); document.getElementById('racsAccion').focus(); btn.disabled = false; btn.innerHTML = '<i class="bi bi-shield-check"></i> ENVIAR REPORTE RACS'; return; }
 
     const groupName = getWorkerGroup(workerName);
 
@@ -192,7 +196,7 @@ async function submitRacs(e) {
         const r = await fetch('/api/racs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ worker_name: workerName, group_name: groupName, categoria, tipo, turno, descripcion, ubicacion, referencia, riesgo, accion_correctiva: accionCorrectiva, tipo_descripcion: tipoDescripcion }),
+            body: JSON.stringify({ worker_name: workerName, group_name: groupName, categoria, tipo, turno, descripcion, ubicacion, referencia, nivel, fecha_reporte: fechaReporte, riesgo, accion_correctiva: accionCorrectiva, tipo_descripcion: tipoDescripcion }),
         });
         if (!r.ok) throw new Error(await r.text());
         const data = await r.json();
@@ -202,29 +206,40 @@ async function submitRacs(e) {
         waText += `👤 Trabajador: ${workerName}\n`;
         waText += `📋 Categoría: ${categoria}\n`;
         waText += `📋 Tipo: ${tipo}\n`;
+        waText += `🔄 Turno: ${turno}\n`;
+        waText += `📅 Fecha: ${fechaReporte}\n`;
+        waText += `📊 Nivel: ${nivel || '—'}\n`;
+        waText += `📍 Ubicación: ${ubicacion || '—'}\n`;
+        waText += `📍 Referencia: ${referencia || '—'}\n`;
+        waText += `⚠️ Riesgo: ${riesgo}\n`;
         if (descripcion) waText += `📝 Descripción: ${descripcion}\n`;
-        if (ubicacion) waText += `📍 Ubicación: ${ubicacion}\n`;
+        if (accionCorrectiva) waText += `🔧 Acción Correctiva: ${accionCorrectiva}\n`;
+        if (tipoDescripcion) waText += `📌 Tipo específico: ${tipoDescripcion}\n`;
         waText += `\n_Período vigente_`;
         waText += `\n_Enviado desde Sistema RACS_`;
 
         let resultHtml = `<div class="alert alert-success">✅ RACS #${racsId} enviado correctamente. <a href="/api/racs/${racsId}/excel" target="_blank" class="btn btn-sm btn-outline-light ms-2"><i class="bi bi-file-earmark-excel"></i> Descargar Excel</a></div>`;
         resultHtml += `<div class="text-center d-flex gap-2 justify-content-center flex-wrap">`;
         if (sendWA !== false) {
-            resultHtml += `<a href="${getWhatsAppUrl(waText)}" target="_blank" class="btn btn-success btn-sm px-3"><i class="bi bi-whatsapp me-1"></i> Enviar por WhatsApp</a>`;
+            const waUrl = getWhatsAppUrl(waText);
+            resultHtml += `<a href="${waUrl}" target="_blank" class="btn btn-success btn-sm px-3"><i class="bi bi-whatsapp me-1"></i> Abrir WhatsApp</a>`;
+            setTimeout(() => window.open(waUrl, '_blank'), 300);
         }
         resultHtml += `<button onclick="copyToClipboard('${encodeURIComponent(waText).replace(/'/g, "\\'")}')" class="btn btn-outline-secondary btn-sm px-3"><i class="bi bi-clipboard me-1"></i> Copiar texto</button>`;
         resultHtml += `</div>`;
 
         document.getElementById('racsResult').innerHTML = resultHtml;
         document.getElementById('racsForm').reset();
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('racsFechaDisplay').value = today;
         document.getElementById('racsRiesgo').value = 'Alto';
-        document.getElementById('racsTipo').value = 'Acto Subestándar';
+        document.getElementById('racsTipo').value = 'Condición Subestándar';
         document.getElementById('racsCategoria').value = 'Seguridad y Salud Ocupacional';
         document.getElementById('racsTurno').value = 'DÍA';
         document.querySelectorAll('.check-item').forEach(el => el.classList.remove('selected'));
         document.getElementById('racsOtrosContainer').style.display = 'none';
         document.getElementById('racsOtrosTexto').value = '';
-        document.querySelectorAll('.btn-option[data-tipo]').forEach((b,i) => { b.classList.toggle('active-acto', i===0); b.classList.toggle('active', i===0); });
+        document.querySelectorAll('.btn-option[data-tipo]').forEach((b,i) => { b.classList.toggle('active-cond', i===1); b.classList.toggle('active', i===1); });
         document.querySelectorAll('.btn-option[data-categoria]').forEach((b,i) => { b.classList.toggle('active-ss', i===0); b.classList.toggle('active', i===0); });
         document.querySelectorAll('.btn-option.turno').forEach((b,i) => b.classList.toggle('active', i===0));
         document.querySelectorAll('.riesgo-btn').forEach((b,i) => b.classList.toggle('active', i===0));
@@ -312,10 +327,11 @@ async function loadRacsHistory() {
             container.innerHTML = '<p class="text-muted small">No hay RACS registrados en este período.</p>';
             return;
         }
-        let html = '<div class="table-responsive" style="max-height:350px;overflow-y:auto;"><table class="table table-sm table-hover"><thead><tr class="table-dark"><th>#</th><th>Trabajador</th><th>Categoría</th><th>Tipo</th><th>Descripción</th><th>Riesgo</th><th>Lugar</th><th>Referencia</th><th>Turno</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        let html = '<div class="table-responsive" style="max-height:350px;overflow-y:auto;"><table class="table table-sm table-hover"><thead><tr class="table-dark"><th>#</th><th>Trabajador</th><th>Categoría</th><th>Tipo</th><th>Descripción</th><th>Riesgo</th><th>Nivel</th><th>Lugar</th><th>Referencia</th><th>Turno</th><th>Fecha</th><th></th></tr></thead><tbody>';
         for (const item of list) {
             const d = new Date(item.created_at);
             const dateFmt = d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            const fechaR = item.fecha_reporte || dateFmt.split(',')[0];
             const riesgoColor = item.riesgo === 'Alto' ? 'text-danger' : item.riesgo === 'Medio' ? 'text-warning' : 'text-success';
             html += `<tr>
                 <td>${item.id}</td>
@@ -324,10 +340,11 @@ async function loadRacsHistory() {
                 <td>${item.tipo === 'Acto Subestándar' ? '⚠️ Acto' : '⚠️ Condición'}</td>
                 <td>${item.descripcion || '—'}</td>
                 <td class="${riesgoColor} fw-bold">${item.riesgo || '—'}</td>
+                <td>${item.nivel || '—'}</td>
                 <td>${item.ubicacion || '—'}</td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.referencia || ''}">${item.referencia || '—'}</td>
                 <td>${item.turno || '—'}</td>
-                <td>${dateFmt}</td>
+                <td>${fechaR}</td>
                 <td><a href="/api/racs/${item.id}/excel" target="_blank" class="btn btn-outline-light btn-sm py-0 px-1" title="Descargar Excel"><i class="bi bi-file-earmark-excel"></i></a></td>
             </tr>`;
         }
