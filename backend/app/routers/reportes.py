@@ -261,7 +261,7 @@ def export_reports_excel(
     if date_from: q = q.filter(Report.date >= parse_date(date_from))
     if date_to: q = q.filter(Report.date <= parse_date(date_to))
     if worker: q = q.join(Worker).filter(Worker.name.ilike(f"%{worker}%"))
-    q = q.order_by(Report.date.desc(), Report.id.desc())
+    q = q.order_by(Report.date.asc(), Report.id.asc())
     data = [_report_to_dict(r) for r in q.all()]
     wb = build_excel(data)
     buf = io.BytesIO()
@@ -283,7 +283,7 @@ def export_reports_csv(
     if date_from: q = q.filter(Report.date >= parse_date(date_from))
     if date_to: q = q.filter(Report.date <= parse_date(date_to))
     if worker: q = q.join(Worker).filter(Worker.name.ilike(f"%{worker}%"))
-    q = q.order_by(Report.date.desc(), Report.id.desc())
+    q = q.order_by(Report.date.asc(), Report.id.asc())
     data = q.all()
     output = io.StringIO()
     writer = csv.writer(output)
