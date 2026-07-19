@@ -1,15 +1,23 @@
 """RACS business logic — period, guardia, worker helpers."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from ..models import Guardia, WorkerGuardia, RacsWorker
 
 
+# Peru is UTC-5
+PERU_TZ = timezone(timedelta(hours=-5))
+
+
+def _now_peru():
+    return datetime.now(PERU_TZ).replace(tzinfo=None)
+
+
 def get_racs_period(dt=None):
     """Return (period_start, period_end) for the current RACS period.
-    Period: Sunday 20:00 → next Sunday 18:00.
+    Period: Sunday 20:00 -> next Sunday 18:00 (Peru time).
     """
     if dt is None:
-        dt = datetime.now()
+        dt = _now_peru()
     days_back = (dt.weekday() + 1) % 7
     cand_start = (dt - timedelta(days=days_back)).replace(
         hour=20, minute=0, second=0, microsecond=0
@@ -28,7 +36,7 @@ def is_guardia_on_site(guardia_name: str, check_date=None, db=None):
     if not guardia_name:
         return True
     if check_date is None:
-        check_date = datetime.now().date()
+        check_date = _now_peru().date()
     elif isinstance(check_date, datetime):
         check_date = check_date.date()
     if db is None:
