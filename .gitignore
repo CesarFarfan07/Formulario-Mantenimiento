@@ -1,7 +1,12 @@
 __pycache__/
-*.pyc
-*.pyo
-.env
+*.py[cod]
 *.db
-static/uploads/
-static/daily_reports/
+*.sqlite
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+uploads/
+racs_photos/

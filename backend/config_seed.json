@@ -144,11 +144,6 @@
       "position": 5
     },
     {
-      "group_name": "Convencional",
-      "name": "Vlady mamani",
-      "position": 5
-    },
-    {
       "group_name": "Electrico",
       "name": "Jose Huayra",
       "position": 5
@@ -824,6 +819,38 @@
       ]
     },
     {
+      "name": "Motosierras",
+      "action_group": "Trackless",
+      "position": 0,
+      "subitems": [
+        {
+          "name": "Motosierra 372 N°01 (MotSie-372)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Motosierra 372 N°02 (MotSie-372)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Motosierra 382 N°01 (MotSie-382)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Motosierra 382 N°02 (MotSie-382)",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Motosierra 382 N°01 (MotSie-661)",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
+    },
+    {
       "name": "Bomba de Pistón",
       "action_group": "Convencional",
       "position": 1,
@@ -836,32 +863,67 @@
         {
           "name": "Electrobomba de Pistón (EB.11-P)",
           "meters": "fin",
-          "position": 1
+          "position": 0
         },
         {
           "name": "Electrobomba de Pistón (EB.12-P)",
           "meters": "fin",
-          "position": 2
+          "position": 0
         },
         {
           "name": "Electrobomba de Pistón (EB.13-P)",
           "meters": "fin",
-          "position": 3
+          "position": 0
         },
         {
           "name": "Electrobomba de Pistón (EB.14-P)",
           "meters": "fin",
-          "position": 4
+          "position": 0
         },
         {
           "name": "Electrobomba de Pistón (EB.15-P)",
           "meters": "fin",
-          "position": 5
+          "position": 0
         },
         {
           "name": "Electrobomba de Pistón (EB.16-P)",
           "meters": "fin",
-          "position": 6
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.01-P) - Alimak",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.02-P) - Alimak",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.03-P) - Nv. 04",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.04-P) - Nv. 0 ",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.05-P) - CX-889",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.06-P) - CX-888",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Electrobomba de Pistón (EB.07-P) - CX -808",
+          "meters": "fin",
+          "position": 0
         }
       ]
     },
@@ -955,37 +1017,42 @@
         {
           "name": "Camión Tortuga 1 (VAP-905)",
           "meters": "kilometraje",
-          "position": 1
+          "position": 0
         },
         {
           "name": "Camión Tortuga 2 (VDT-742)",
           "meters": "kilometraje",
-          "position": 2
+          "position": 0
         },
         {
           "name": "Camión Tortuga 3 (VDT-726)",
           "meters": "kilometraje",
-          "position": 3
+          "position": 0
         },
         {
           "name": "Camión Tortuga 4 (VEA-766)",
           "meters": "kilometraje",
-          "position": 4
+          "position": 0
         },
         {
           "name": "Camión Tortuga 5 (VEE-770)",
           "meters": "kilometraje",
-          "position": 5
+          "position": 0
         },
         {
           "name": "Camión Recuperación (VET-885)",
           "meters": "kilometraje",
-          "position": 6
+          "position": 0
         },
         {
           "name": "Camión Rojo (VBR-892)",
           "meters": "kilometraje",
-          "position": 7
+          "position": 0
+        },
+        {
+          "name": "Camión Tortuga 6 (VFJ-750)",
+          "meters": "kilometraje",
+          "position": 0
         }
       ]
     },
@@ -1727,10 +1794,21 @@
       ]
     },
     {
-      "name": "Bombas Sumergibles",
-      "action_group": "Convencional",
+      "name": "Motobombas",
+      "action_group": "Trackless",
       "position": 25,
-      "subitems": []
+      "subitems": [
+        {
+          "name": "Motobomba N°01",
+          "meters": "fin",
+          "position": 0
+        },
+        {
+          "name": "Motobomba N°02",
+          "meters": "fin",
+          "position": 0
+        }
+      ]
     }
   ]
 }
