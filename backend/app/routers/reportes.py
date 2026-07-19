@@ -225,6 +225,32 @@ def list_reports(
     return {"data": result, "has_more": has_more, "next_cursor": next_cursor}
 
 
+def _report_to_dict(r):
+    """Serialize Report ORM -> dict for build_excel."""
+    return {
+        "id": r.id, "date": r.date.isoformat() if r.date else None,
+        "shift": r.shift, "group_name": r.group_name,
+        "worker_name": r.worker.name if r.worker else None,
+        "entries": [
+            {
+                "macroprocess": e.macroprocess, "work_type": e.work_type,
+                "work_subtype": e.work_subtype, "action": e.action,
+                "description": e.description, "level": e.level,
+                "location": e.location,
+                "start_time_int": e.start_time_int, "end_time_int": e.end_time_int,
+                "duration": e.duration, "equipment": e.equipment,
+                "horometer_motor": e.horometer_motor,
+                "horometer_motor_jumbo": e.horometer_motor_jumbo,
+                "horometer_motor_volquetes": e.horometer_motor_volquetes,
+                "horometer_electric": e.horometer_electric,
+                "horometer_percussion": e.horometer_percussion,
+                "kilometer": e.kilometer, "collaborators": e.collaborators,
+            }
+            for e in (r.entries or [])
+        ],
+    }
+
+
 @router.get("/api/reports/export/excel")
 @router.get("/reports/export", include_in_schema=False)
 def export_reports_excel(
@@ -236,7 +262,7 @@ def export_reports_excel(
     if date_to: q = q.filter(Report.date <= parse_date(date_to))
     if worker: q = q.join(Worker).filter(Worker.name.ilike(f"%{worker}%"))
     q = q.order_by(Report.date.desc(), Report.id.desc())
-    data = q.all()
+    data = [_report_to_dict(r) for r in q.all()]
     wb = build_excel(data)
     buf = io.BytesIO()
     wb.save(buf)
@@ -261,10 +287,11 @@ def export_reports_csv(
     data = q.all()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["ID", "Fecha", "Turno", "Grupo", "Observador", "Macroproceso", "Tipo Trabajo", "Acción", "Descripción", "Equipo"])
+    writer.writerow(["ID", "Fecha", "Turno", "Grupo", "Trabajador", "Macroproceso", "Tipo Trabajo", "Acción", "Descripción", "Equipo"])
     for r in data:
+        worker_name = r.worker.name if r.worker else ""
         for e in r.entries:
-            writer.writerow([r.id, r.date, r.shift, r.group_name, r.observers_name, e.macroprocess, e.work_type, e.action, e.description, e.equipment])
+            writer.writerow([r.id, r.date, r.shift, r.group_name, worker_name, e.macroprocess, e.work_type, e.action, e.description, e.equipment])
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=reportes.csv"})
 
