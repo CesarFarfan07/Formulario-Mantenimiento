@@ -109,7 +109,11 @@
                             <label class="form-label">🌓 Turno de trabajo</label>
                             <select class="form-select" id="shift" required><option value="">Seleccionar...</option></select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label class="form-label">👤 Nombre del Trabajador</label>
+                            <input type="text" class="form-control" id="workerName" placeholder="Tu nombre completo" required>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">👥 ¿A qué Grupo de Trabajo Perteneces?</label>
                             <select class="form-select" id="groupName" required onchange="onGroupChange()">
                                 <option value="">Seleccionar...</option>

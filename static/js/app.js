@@ -922,9 +922,10 @@ document.getElementById('reportForm').addEventListener('submit', async (e) => {
             entries.push(entry);
         });
 
+        const wn = (document.getElementById('workerName').value || '').trim() || 'Trabajador';
         const payload = {
-            worker_name: 'Trabajador',
-            worker_email: 'trabajador@mina.com',
+            worker_name: wn,
+            worker_email: wn.toLowerCase().replace(/[^a-z0-9]/g, '.') + '@mina.com',
             date: document.getElementById('reportDate').value,
             shift: document.getElementById('shift').value,
             group_name: group,
