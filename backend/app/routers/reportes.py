@@ -228,7 +228,7 @@ def list_reports(
 def _report_to_dict(r):
     """Serialize Report ORM -> dict for build_excel."""
     return {
-        "id": r.id, "date": r.date.isoformat() if r.date else None,
+        "id": r.id, "date": r.date,
         "shift": r.shift, "group_name": r.group_name,
         "worker_name": r.worker.name if r.worker else None,
         "entries": [
@@ -291,7 +291,8 @@ def export_reports_csv(
     for r in data:
         worker_name = r.worker.name if r.worker else ""
         for e in r.entries:
-            writer.writerow([r.id, r.date, r.shift, r.group_name, worker_name, e.macroprocess, e.work_type, e.action, e.description, e.equipment])
+            date_str = r.date.strftime("%d-%m-%Y") if r.date else ""
+            writer.writerow([r.id, date_str, r.shift, r.group_name, worker_name, e.macroprocess, e.work_type, e.action, e.description, e.equipment])
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv",
                              headers={"Content-Disposition": "attachment; filename=reportes.csv"})
 
