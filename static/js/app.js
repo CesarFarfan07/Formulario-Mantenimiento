@@ -1093,27 +1093,29 @@ function renderReportsTable(reports, container) {
     </div>`;
     html += `<div class="table-responsive"><table class="table table-sm table-hover mb-1" style="min-width:600px;">
         <thead><tr class="table-dark">
-            <th style="width:30px"></th><th>#</th><th>🌓 Turno</th><th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
+            <th style="width:30px"></th><th>#</th><th>🌓 Turno</th><th>🧑‍🔧 Trabajador</th><th>🧑‍🔧 Colaboradores</th><th>🔧 Trabajos</th><th></th>
         </tr></thead><tbody>`;
 
     const grouped = groupReports(reports);
     let firstGroup = true;
     for (const [group, dates] of grouped) {
-        if (!firstGroup) html += `<tr class="separator-row"><td colspan="6" style="padding:4px 0;"></td></tr>`;
+        if (!firstGroup) html += `<tr class="separator-row"><td colspan="7" style="padding:4px 0;"></td></tr>`;
         firstGroup = false;
-        html += `<tr class="group-header"><td colspan="6">👥 ${group}</td></tr>`;
+        html += `<tr class="group-header"><td colspan="7">👥 ${group}</td></tr>`;
         for (const [dateStr, dateReports] of dates) {
-            html += `<tr class="date-subheader"><td colspan="6">📅 ${formatDate(dateStr)} (${dateReports.length})</td></tr>`;
+            html += `<tr class="date-subheader"><td colspan="7">📅 ${formatDate(dateStr)} (${dateReports.length})</td></tr>`;
             for (const rp of dateReports) {
                 const colabs = [];
                 if (rp.collaborators_trackless) colabs.push(rp.collaborators_trackless);
                 if (rp.collaborators_convencional) colabs.push(rp.collaborators_convencional);
                 if (rp.collaborators_electrico) colabs.push(rp.collaborators_electrico);
                 const colabText = colabs.join(', ').substring(0, 60) + (colabs.join(', ').length > 60 ? '...' : '');
+                const workerCell = rp.worker_name || '—';
                 html += `<tr>
                     <td><input type="checkbox" class="report-check" value="${rp.id}" onchange="updateBatchDeleteBtn()"></td>
                     <td>${rp.id}</td>
                     <td>${rp.shift}</td>
+                    <td>${workerCell}</td>
                     <td title="${colabs.join(', ')}">${colabText}</td>
                     <td>${(rp.entries || []).length}</td>
                     <td class="text-nowrap">
