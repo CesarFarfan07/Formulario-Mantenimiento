@@ -268,6 +268,14 @@ function renderMainGrid(current, comparison) {
         </div></div>
     </div>`;
 
+    // Row 5: Compliance (reportaron / faltaron)
+    html += `<div class="row g-3 mb-4 anim-section">
+        <div class="col-12"><div class="glass p-3">
+            <div class="section-title" style="color:#22d3ee;"><i class="bi bi-clipboard-check"></i> Control Diario de Reportes</div>
+            <div id="complianceContainer"><div style="text-align:center;padding:1rem 0;opacity:.4;">Cargando...</div></div>
+        </div></div>
+    </div>`;
+
     // Equipment table
     html += `<div class="row anim-section mb-4">
         <div class="col-12"><div class="glass p-3">
@@ -291,6 +299,7 @@ function renderMainGrid(current, comparison) {
     renderWeeklySummaries(current);
     renderAvgDuration(current);
     renderTopCollabs(current);
+    renderCompliance();
     renderEquipTable(current);
 
     // Comparison overlays
@@ -342,7 +351,8 @@ function renderShiftChart(current) {
     if (!ctx) return;
     const sc = current.shift_comparison || {};
     const labels = Object.keys(sc);
-    const vals = Object.values(sc);
+    const vals = Object.values(sc).map(v => (typeof v === 'object' ? (v.jobs || 0) : v));
+    const total = vals.reduce((a, b) => a + b, 0);
     chartInstances.shift = new Chart(ctx.getContext('2d'), {
         type: 'doughnut',
         data: {
@@ -353,7 +363,10 @@ function renderShiftChart(current) {
             responsive: true, maintainAspectRatio: false, cutout: '60%',
             plugins: {
                 legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 }, usePointStyle: true } },
-                tooltip: { backgroundColor: 'rgba(15,23,42,.9)', padding: 10, cornerRadius: 8 }
+                tooltip: {
+                    backgroundColor: 'rgba(15,23,42,.9)', padding: 10, cornerRadius: 8,
+                    callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed} trabajos (${((ctx.parsed / total) * 100).toFixed(1)}%)` }
+                }
             }
         }
     });
@@ -572,6 +585,63 @@ function renderOKRs(okrs) {
     requestAnimationFrame(() => {
         container.querySelectorAll('.progress-okr .bar').forEach(b => { b.style.width = '0%'; setTimeout(() => { b.style.width = b.dataset.w + '%'; }, 200); });
     });
+}
+
+// ─── Compliance ─────────────────────────────────────────────────────────────
+async function renderCompliance() {
+    const container = document.getElementById('complianceContainer');
+    if (!container) return;
+    try {
+        const r = await fetch('/api/reports/daily-compliance');
+        const d = await r.json();
+        let html = '';
+
+        // Summary bar
+        const pct = d.total_mina ? Math.round(d.total_reportaron_ayer / d.total_mina * 100) : 0;
+        html += `<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.8rem;">
+            <span class="team-badge" style="background:#22d3ee22;color:#22d3ee;">Total mina: ${d.total_mina}</span>
+            <span class="team-badge" style="background:#10b98122;color:#10b981;">Reportaron: ${d.total_reportaron_ayer}</span>
+            <span class="team-badge" style="background:#ef444422;color:#ef4444;">Faltan: ${d.total_faltaron_ayer}</span>
+            <span class="team-badge" style="background:#f59e0b22;color:#f59e0b;">${pct}% cumplimiento</span>
+        </div>`;
+
+        // Day columns
+        for (const [dayKey, dayLabel] of [['ayer', 'Ayer'], ['anteayer', 'Anteayer']]) {
+            const day = d[dayKey];
+            if (!day) continue;
+            html += `<div style="margin-bottom:.6rem;"><span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;">${dayLabel}</span></div>`;
+            for (const [shift, shiftIcon] of [['Dia', '☀️'], ['Noche', '🌙']]) {
+                const s = day[shift];
+                if (!s) continue;
+                const reportedClass = s.reportaron.length ? '' : 'style="opacity:.4;"';
+                html += `<div style="display:flex;gap:.5rem;margin-bottom:.3rem;padding-left:.5rem;">
+                    <span style="min-width:50px;font-size:.75rem;font-weight:600;">${shiftIcon} ${shift}</span>
+                    <div style="flex:1;">
+                        <span style="font-size:.72rem;color:#10b981;">✅ ${s.reportaron.length}:</span>
+                        <span style="font-size:.7rem;" ${reportedClass}>${s.reportaron.join(', ') || '---'}</span>
+                    </div>
+                </div>`;
+            }
+            // Show faltaron only once (same for both shifts)
+            const dia = day['Dia'];
+            if (dia && dia.faltaron && dia.faltaron.length) {
+                html += `<div style="margin-bottom:.3rem;padding-left:.5rem;">
+                    <span style="font-size:.72rem;color:#ef4444;">❌ No reportaron (${dia.faltaron.length}):</span>
+                    <span style="font-size:.7rem;">${dia.faltaron.join(', ')}</span>
+                </div>`;
+            }
+        }
+
+        // Rest workers
+        if (d.en_descanso && d.en_descanso.length) {
+            html += `<div style="margin-top:.6rem;"><span style="font-size:.7rem;font-weight:700;color:rgba(255,255,255,.3);">😴 En descanso (${d.en_descanso.length})</span>
+                <span style="font-size:.7rem;opacity:.5;margin-left:.3rem;">${d.en_descanso.join(', ')}</span></div>`;
+        }
+
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = `<div style="text-align:center;padding:1rem 0;opacity:.4;">Error al cargar compliance: ${e.message}</div>`;
+    }
 }
 
 // ─── KPI Detail Drill-down ──────────────────────────────────────────────────

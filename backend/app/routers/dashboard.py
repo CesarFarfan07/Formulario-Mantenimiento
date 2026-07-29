@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func as _sf
-import os
+import os, math
 
 from ..core.database import get_db
 from ..core.config import BASE_DIR
@@ -137,6 +137,26 @@ def _compute_period_stats(db, date_from, date_to, group):
 
     worker_list = [{"name": w.name, "team": w.group_name} for w in workers]
 
+    # ── Weekly summaries ──
+    week_q = q_base.with_entities(
+        Report.date, Report.group_name, _sf.count(JobEntry.id)
+    ).group_by(Report.date, Report.group_name).all()
+    week_acc = defaultdict(int)
+    week_team_acc = defaultdict(lambda: defaultdict(int))
+    week_start = {}
+    for d, g, cnt in week_q:
+        iso = d.isocalendar()
+        wk = f"{iso[0]}-W{iso[1]:02d}"
+        week_acc[wk] += cnt
+        week_team_acc[wk][g] += cnt
+        if wk not in week_start or d < week_start[wk]:
+            week_start[wk] = d
+    weekly_summaries = [
+        {"week": wk, "start": week_start[wk].isoformat(), "count": week_acc[wk],
+         "by_team": dict(week_team_acc[wk])}
+        for wk in sorted(week_acc)
+    ]
+
     return {
         "kpis": {
             "total_jobs": total_jobs, "total_hours": total_hours,
@@ -153,6 +173,7 @@ def _compute_period_stats(db, date_from, date_to, group):
         "avg_duration_by_team": avg_duration_by_team,
         "top_collaborators": top_collaborators,
         "jobs_by_equipment": jobs_by_equipment,
+        "weekly_summaries": weekly_summaries,
     }
 
 

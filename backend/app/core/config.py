@@ -25,12 +25,16 @@ class Settings(BaseSettings):
     admin_password: str = "Mantt.1"
     admin_dni: str = "70212352"
 
+    # Telegram
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
     # Monitoring
     sentry_dsn: str = ""
     environment: str = "development"
 
     class Config:
-        env_file = ".env"
+        env_file = os.path.join(BASE_DIR, ".env")
         env_file_encoding = "utf-8"
 
 

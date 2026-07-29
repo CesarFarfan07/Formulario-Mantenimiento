@@ -10,10 +10,13 @@ from typing import List, Optional
 
 from ..core.database import get_db
 from ..core.config import settings, BASE_DIR
-from ..models import Worker, Report, JobEntry, JobImage
+from ..models import Worker, Report, JobEntry, JobImage, RacsWorker, Guardia, WorkerGuardia
 from ..schemas import ReportCreate, ReportResponse, WorkerResponse, JobImageResponse
 from ..excel_export import build_excel
 from ..daily_report import generate_daily_report, generate_daily_report_bytes, list_daily_reports
+from ..services.racs_service import get_all_workers, get_worker_guardias, is_guardia_on_site
+from ..services.telegram_service import send_telegram
+from sqlalchemy import func as _sf
 
 PROJECT_DIR = os.path.dirname(BASE_DIR)  # project root
 TEMPLATE_DIR = os.path.join(BASE_DIR, "app", "templates")
@@ -367,6 +370,181 @@ def generate_daily(report_date: str, db: Session = Depends(get_db)):
         BytesIO(excel_data.read()), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="Reporte_Diario_{d.isoformat()}.xlsx"'},
     )
+
+
+# ─── Daily compliance (must be before {report_id} routes) ──────────
+
+
+MAINT_GROUPS = ["Trackless", "Convencional", "Electrico"]
+
+
+def _collect_collaborators(reports):
+    names = []
+    for r in reports:
+        for e in (r.entries or []):
+            if e.collaborators:
+                for n in e.collaborators.split(","):
+                    n = n.strip()
+                    if n:
+                        names.append(n)
+    return names
+
+
+def _normalize(name):
+    return name.strip().lower()
+
+
+@router.get("/api/reports/daily-compliance")
+def daily_compliance(
+    notify: Optional[bool] = Query(False),
+    db: Session = Depends(get_db),
+):
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    day_before = today - timedelta(days=2)
+
+    ayer_reports = db.query(Report).options(joinedload(Report.entries)).filter(Report.date == yesterday).all()
+    anteayer_reports = db.query(Report).options(joinedload(Report.entries)).filter(Report.date == day_before).all()
+
+    def split_by_shift(reports):
+        dia = []
+        noche = []
+        for r in reports:
+            if not r.shift:
+                continue
+            s = r.shift.lower().replace("\u00ed", "i")  # Día -> Dia
+            if "dia" in s:
+                dia.append(r)
+            elif "noche" in s:
+                noche.append(r)
+        return dia, noche
+
+    ayer_dia, ayer_noche = split_by_shift(ayer_reports)
+    anteayer_dia, anteayer_noche = split_by_shift(anteayer_reports)
+
+    def unique_names(reports):
+        return sorted(set(_collect_collaborators(reports)))
+
+    ayer_dia_raw = unique_names(ayer_dia)
+    ayer_noche_raw = unique_names(ayer_noche)
+    anteayer_dia_raw = unique_names(anteayer_dia)
+    anteayer_noche_raw = unique_names(anteayer_noche)
+
+    # Master list: RacsWorker activos de Trackless/Convencional/Electrico
+    master = db.query(RacsWorker).filter(
+        RacsWorker.active == True,
+        RacsWorker.group_name.in_(MAINT_GROUPS),
+    ).all()
+    master_lookup = {}  # normalized -> canonical name
+    worker_groups = {}  # canonical name -> group
+    for w in master:
+        key = _normalize(w.name)
+        master_lookup[key] = w.name
+        worker_groups[w.name] = w.group_name
+
+    wg_map = get_worker_guardias(db)
+
+    def match_to_master(raw_names):
+        matched = []
+        seen = set()
+        for n in raw_names:
+            key = _normalize(n)
+            canonical = master_lookup.get(key)
+            if canonical and canonical not in seen:
+                seen.add(canonical)
+                matched.append(canonical)
+        return sorted(matched)
+
+    def calc_on_site_rest(worker_name_list):
+        on_site = []
+        on_rest = []
+        for name in worker_name_list:
+            g = wg_map.get((name, worker_groups.get(name, "")), "")
+            if is_guardia_on_site(g, check_date=yesterday, db=db):
+                on_site.append(name)
+            else:
+                on_rest.append(name)
+        return on_site, on_rest
+
+    ayer_dia_reported = match_to_master(ayer_dia_raw)
+    ayer_noche_reported = match_to_master(ayer_noche_raw)
+    anteayer_dia_reported = match_to_master(anteayer_dia_raw)
+    anteayer_noche_reported = match_to_master(anteayer_noche_raw)
+
+    all_master_names = list(master_lookup.values())
+    on_site_all, on_rest_all = calc_on_site_rest(all_master_names)
+    on_site_set = set(on_site_all)
+
+    ayer_reported_all = set(ayer_dia_reported + ayer_noche_reported)
+    reported_yesterday = sorted(ayer_reported_all & on_site_set)
+    missing_yesterday = sorted(on_site_set - ayer_reported_all)
+    faltaron_global_yesterday = sorted(on_site_set - ayer_reported_all)
+    faltaron_global_anteayer = sorted(on_site_set - set(anteayer_dia_reported + anteayer_noche_reported))
+
+    data = {
+        "fecha": today.strftime("%d-%m-%Y"),
+        "ayer": {
+            "Dia": {"reportaron": ayer_dia_reported, "faltaron": faltaron_global_yesterday},
+            "Noche": {"reportaron": ayer_noche_reported, "faltaron": faltaron_global_yesterday},
+        },
+        "anteayer": {
+            "Dia": {"reportaron": anteayer_dia_reported, "faltaron": faltaron_global_anteayer},
+            "Noche": {"reportaron": anteayer_noche_reported, "faltaron": faltaron_global_anteayer},
+        },
+        "en_descanso": sorted(on_rest_all),
+        "total_mina": len(on_site_all),
+        "total_master": len(all_master_names),
+        "total_reportaron_ayer": len(reported_yesterday),
+        "total_faltaron_ayer": len(missing_yesterday),
+    }
+
+    if notify:
+        def bullet(names, empty_text="---"):
+            return ", ".join(names) if names else empty_text
+
+        lines = []
+        lines.append(f"\U0001f4ca <b>CONTROL DIARIO DE REPORTES</b>")
+        lines.append(f"{today.strftime('%d/%m/%Y')}")
+        lines.append("")
+
+        lines.append(f"\U0001f539 <b>AYER</b> ({yesterday.strftime('%d/%m')})")
+        lines.append("")
+        lines.append(f"  \U0001f31e <b>DIA</b>")
+        lines.append(f"  \u2705 Reportaron ({len(ayer_dia_reported)}):")
+        lines.append(f"     {bullet(ayer_dia_reported)}")
+        lines.append("")
+        lines.append(f"  \U0001f319 <b>NOCHE</b>")
+        lines.append(f"  \u2705 Reportaron ({len(ayer_noche_reported)}):")
+        lines.append(f"     {bullet(ayer_noche_reported)}")
+        if faltaron_global_yesterday:
+            lines.append("")
+            lines.append(f"  \u274c <b>NO REPORTARON</b> ({len(faltaron_global_yesterday)}):")
+            lines.append(f"     {bullet(faltaron_global_yesterday)}")
+
+        lines.append("")
+        lines.append(f"\U0001f539 <b>ANTEAYER</b> ({day_before.strftime('%d/%m')})")
+        lines.append(f"  \U0001f31e DIA: {len(anteayer_dia_reported)} reportaron")
+        lines.append(f"  \U0001f319 NOCHE: {len(anteayer_noche_reported)} reportaron")
+        if faltaron_global_anteayer:
+            lines.append(f"  \u274c No reportaron: {len(faltaron_global_anteayer)} ({bullet(faltaron_global_anteayer)})")
+
+        if on_rest_all:
+            lines.append("")
+            lines.append(f"\U0001f634 <b>EN DESCANSO</b> ({len(on_rest_all)})")
+            lines.append(f"  {bullet(on_rest_all)}")
+
+        lines.append("")
+        lines.append(f"\U0001f4ca <b>RESUMEN</b>")
+        lines.append(f"  Total personal en mina: {len(on_site_all)}")
+        pct = round(len(reported_yesterday) / len(on_site_all) * 100) if on_site_all else 0
+        lines.append(f"  Reportaron ayer: {len(reported_yesterday)}/{len(on_site_all)} ({pct}%)")
+        lines.append(f"  Faltan ayer: {len(missing_yesterday)}")
+
+        message = "\n".join(lines)
+        sent = send_telegram(message)
+        data["telegram_enviado"] = sent
+
+    return data
 
 
 @router.get("/api/reports/{report_id}")
