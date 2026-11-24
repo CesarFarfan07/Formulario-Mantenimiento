@@ -235,15 +235,13 @@ def build_excel(reports_data: list) -> Workbook:
     ws.auto_filter.ref = f"A1:{get_column_letter(len(FINAL_COLUMNS))}1"
 
     row_num = 2
-    sku_counter = 0
     for idx, rp in enumerate(reports_data, 1):
         entries = rp.get("entries", []) or [None]
 
         for entry in entries:
-            sku_counter += 1
             if entry is None:
                 entry = {}
-            sku = f"Rep-{sku_counter:04d}"
+            sku = f"Rep-{entry['id']:04d}" if entry.get("id") else ""
             fecha = rp.get("date")
 
             group_name = rp.get("group_name", "")

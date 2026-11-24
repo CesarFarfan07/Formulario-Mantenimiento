@@ -236,6 +236,7 @@ def _report_to_dict(r):
         "worker_name": r.worker.name if r.worker else None,
         "entries": [
             {
+                "id": e.id,
                 "macroprocess": e.macroprocess, "work_type": e.work_type,
                 "work_subtype": e.work_subtype, "action": e.action,
                 "description": e.description, "level": e.level,
